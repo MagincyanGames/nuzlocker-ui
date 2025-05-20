@@ -1,0 +1,14 @@
+targets:
+  $default:
+    builders:
+      swagger_dart_code_generator:
+        options:
+          input_folder: 'lib/swaggers'
+          output_folder: 'lib/generated_code/'
+          default_values_map:
+            - type_name: int
+              default_value: '36'
+            - type_name: String
+              default_value: 'default'
+            - type_name: 'List<String>'
+              default_value: '[]'
