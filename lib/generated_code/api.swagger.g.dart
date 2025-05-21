@@ -210,48 +210,142 @@ Map<String, dynamic> _$UpdateLockeDtoToJson(UpdateLockeDto instance) =>
       'adminIds': instance.adminIds,
     };
 
+ParticipantResultDto _$ParticipantResultDtoFromJson(
+        Map<String, dynamic> json) =>
+    ParticipantResultDto(
+      userId: json['userId'] as String? ?? 'default',
+      score: (json['score'] as num).toDouble(),
+    );
+
+Map<String, dynamic> _$ParticipantResultDtoToJson(
+        ParticipantResultDto instance) =>
+    <String, dynamic>{
+      'userId': instance.userId,
+      'score': instance.score,
+    };
+
 CreateBattleDto _$CreateBattleDtoFromJson(Map<String, dynamic> json) =>
     CreateBattleDto(
-      lockeId: json['lockeId'] as String? ?? 'default',
       participantIds: (json['participantIds'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
           [],
-      winnerId: json['winnerId'] as String? ?? 'default',
-      winCount: (json['winCount'] as num).toDouble(),
+      status:
+          CreateBattleDto.createBattleDtoStatusStatusFromJson(json['status']),
+      results: (json['results'] as List<dynamic>?)
+              ?.map((e) =>
+                  ParticipantResultDto.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      bestOf: (json['bestOf'] as num).toDouble(),
+      date:
+          json['date'] == null ? null : DateTime.parse(json['date'] as String),
+      notes: json['notes'] as String? ?? 'default',
     );
 
 Map<String, dynamic> _$CreateBattleDtoToJson(CreateBattleDto instance) =>
     <String, dynamic>{
-      'lockeId': instance.lockeId,
       'participantIds': instance.participantIds,
-      'winnerId': instance.winnerId,
-      'winCount': instance.winCount,
+      'status': createBattleDtoStatusToJson(instance.status),
+      'results': instance.results.map((e) => e.toJson()).toList(),
+      'bestOf': instance.bestOf,
+      'date': instance.date?.toIso8601String(),
+      'notes': instance.notes,
     };
 
-BattleResponseDto _$BattleResponseDtoFromJson(Map<String, dynamic> json) =>
-    BattleResponseDto(
+EnrichedResultDto _$EnrichedResultDtoFromJson(Map<String, dynamic> json) =>
+    EnrichedResultDto(
+      userId: json['userId'] as String? ?? 'default',
+      score: (json['score'] as num).toDouble(),
+      username: json['username'] as String? ?? 'default',
+      name: json['name'] as String? ?? 'default',
+    );
+
+Map<String, dynamic> _$EnrichedResultDtoToJson(EnrichedResultDto instance) =>
+    <String, dynamic>{
+      'userId': instance.userId,
+      'score': instance.score,
+      'username': instance.username,
+      'name': instance.name,
+    };
+
+EnrichedParticipantDto _$EnrichedParticipantDtoFromJson(
+        Map<String, dynamic> json) =>
+    EnrichedParticipantDto(
+      userId: json['userId'] as String? ?? 'default',
+      username: json['username'] as String? ?? 'default',
+      name: json['name'] as String? ?? 'default',
+    );
+
+Map<String, dynamic> _$EnrichedParticipantDtoToJson(
+        EnrichedParticipantDto instance) =>
+    <String, dynamic>{
+      'userId': instance.userId,
+      'username': instance.username,
+      'name': instance.name,
+    };
+
+EnrichedBattleResponseDto _$EnrichedBattleResponseDtoFromJson(
+        Map<String, dynamic> json) =>
+    EnrichedBattleResponseDto(
       id: json['_id'] as String? ?? 'default',
       participantIds: (json['participantIds'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
           [],
-      winnerId: json['winnerId'] as String? ?? 'default',
-      winCount: (json['winCount'] as num).toDouble(),
+      status: enrichedBattleResponseDtoStatusFromJson(json['status']),
+      results: (json['results'] as List<dynamic>?)
+              ?.map(
+                  (e) => EnrichedResultDto.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      bestOf: (json['bestOf'] as num).toDouble(),
       lockeId: json['lockeId'] as String? ?? 'default',
-      date: DateTime.parse(json['date'] as String),
+      date:
+          json['date'] == null ? null : DateTime.parse(json['date'] as String),
+      notes: json['notes'] as String? ?? 'default',
       createdAt: DateTime.parse(json['createdAt'] as String),
+      participants: (json['participants'] as List<dynamic>?)
+              ?.map((e) =>
+                  EnrichedParticipantDto.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
     );
 
-Map<String, dynamic> _$BattleResponseDtoToJson(BattleResponseDto instance) =>
+Map<String, dynamic> _$EnrichedBattleResponseDtoToJson(
+        EnrichedBattleResponseDto instance) =>
     <String, dynamic>{
       '_id': instance.id,
       'participantIds': instance.participantIds,
-      'winnerId': instance.winnerId,
-      'winCount': instance.winCount,
+      'status': enrichedBattleResponseDtoStatusToJson(instance.status),
+      'results': instance.results.map((e) => e.toJson()).toList(),
+      'bestOf': instance.bestOf,
       'lockeId': instance.lockeId,
-      'date': instance.date.toIso8601String(),
+      'date': instance.date?.toIso8601String(),
+      'notes': instance.notes,
       'createdAt': instance.createdAt.toIso8601String(),
+      'participants': instance.participants?.map((e) => e.toJson()).toList(),
+    };
+
+UpdateBattleDto _$UpdateBattleDtoFromJson(Map<String, dynamic> json) =>
+    UpdateBattleDto(
+      status: updateBattleDtoStatusNullableFromJson(json['status']),
+      results: (json['results'] as List<dynamic>?)
+              ?.map((e) =>
+                  ParticipantResultDto.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      date:
+          json['date'] == null ? null : DateTime.parse(json['date'] as String),
+      notes: json['notes'] as String? ?? 'default',
+    );
+
+Map<String, dynamic> _$UpdateBattleDtoToJson(UpdateBattleDto instance) =>
+    <String, dynamic>{
+      'status': updateBattleDtoStatusNullableToJson(instance.status),
+      'results': instance.results?.map((e) => e.toJson()).toList(),
+      'date': instance.date?.toIso8601String(),
+      'notes': instance.notes,
     };
 
 ParticipantResponseDto _$ParticipantResponseDtoFromJson(

@@ -210,7 +210,7 @@ final class _$Api extends Api {
   }
 
   @override
-  Future<Response<BattleResponseDto>> _apiLockesIdBattlesPost({
+  Future<Response<EnrichedBattleResponseDto>> _apiLockesIdBattlesPost({
     required String? id,
     required CreateBattleDto? body,
   }) {
@@ -222,11 +222,12 @@ final class _$Api extends Api {
       client.baseUrl,
       body: $body,
     );
-    return client.send<BattleResponseDto, BattleResponseDto>($request);
+    return client
+        .send<EnrichedBattleResponseDto, EnrichedBattleResponseDto>($request);
   }
 
   @override
-  Future<Response<List<BattleResponseDto>>> _apiLockesIdBattlesGet(
+  Future<Response<List<EnrichedBattleResponseDto>>> _apiLockesIdBattlesGet(
       {required String? id}) {
     final Uri $url = Uri.parse('/api/lockes/${id}/battles');
     final Request $request = Request(
@@ -234,7 +235,25 @@ final class _$Api extends Api {
       $url,
       client.baseUrl,
     );
-    return client.send<List<BattleResponseDto>, BattleResponseDto>($request);
+    return client.send<List<EnrichedBattleResponseDto>,
+        EnrichedBattleResponseDto>($request);
+  }
+
+  @override
+  Future<Response<EnrichedBattleResponseDto>> _apiLockesBattlesBattleIdPatch({
+    required String? battleId,
+    required UpdateBattleDto? body,
+  }) {
+    final Uri $url = Uri.parse('/api/lockes/battles/${battleId}');
+    final $body = body;
+    final Request $request = Request(
+      'PATCH',
+      $url,
+      client.baseUrl,
+      body: $body,
+    );
+    return client
+        .send<EnrichedBattleResponseDto, EnrichedBattleResponseDto>($request);
   }
 
   @override

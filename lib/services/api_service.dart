@@ -13,8 +13,8 @@ class ApiService {
   static final ApiService _instance = ApiService._internal();
   late Api api;
   String? _token;
-  
-   bool get hasToken => _token != null;
+
+  bool get hasToken => _token != null;
 
   factory ApiService() {
     return _instance;
@@ -85,7 +85,11 @@ class ApiService {
     }
   }
 
-  Future<RegisterResponseDto?> register(String username, String password, String? name) async {
+  Future<RegisterResponseDto?> register(
+    String username,
+    String password,
+    String? name,
+  ) async {
     try {
       final response = await api.apiAuthRegisterPost(
         body: LoginDto(username: username, password: password),
@@ -100,21 +104,41 @@ class ApiService {
       rethrow;
     }
   }
+  Future<List<EnrichedLockeResponseDto>> getAllLockes() async {
+    try {
+      final response = await api.apiLockesGet();
+
+      if (response.isSuccessful && response.body != null) {
+        return response.body!;
+      }
+
+      throw ApiException(response.statusCode, response.error.toString());
+    } catch (e) {
+      debugPrint('Error getting all lockes: $e');
+      rethrow;
+    }
+  }
+
 
   // Locke endpoints
-  Future<List<EnrichedLockeResponseDto>> getMyLockes({bool includeParticipating = true, bool? active}) async {
+  Future<List<EnrichedLockeResponseDto>> getMyLockes({
+    bool includeParticipating = true,
+    bool? active,
+  }) async {
     try {
-      final includeParticipatingEnum = includeParticipating 
-          ? ApiLockesMyLockesGetIncludeParticipating.$true 
-          : ApiLockesMyLockesGetIncludeParticipating.$false;
-      
+      final includeParticipatingEnum =
+          includeParticipating
+              ? ApiLockesMyLockesGetIncludeParticipating.$true
+              : ApiLockesMyLockesGetIncludeParticipating.$false;
+
       // Fix the null boolean error by using conditional logic instead of direct casting
-      final ApiLockesMyLockesGetActive? activeEnum = active == null 
-          ? null 
-          : active 
+      final ApiLockesMyLockesGetActive? activeEnum =
+          active == null
+              ? null
+              : active
               ? ApiLockesMyLockesGetActive.$true
               : ApiLockesMyLockesGetActive.$false;
-      
+
       final response = await api.apiLockesMyLockesGet(
         includeParticipating: includeParticipatingEnum,
         active: activeEnum,
@@ -123,7 +147,7 @@ class ApiService {
       if (response.isSuccessful && response.body != null) {
         return response.body!;
       }
-      
+
       throw ApiException(response.statusCode, response.error.toString());
     } catch (e) {
       debugPrint('Error getting lockes: $e');
@@ -131,7 +155,11 @@ class ApiService {
     }
   }
 
-  Future<EnrichedLockeResponseDto?> createLocke(String name, {String? description, bool isActive = true}) async {
+  Future<EnrichedLockeResponseDto?> createLocke(
+    String name, {
+    String? description,
+    bool isActive = true,
+  }) async {
     try {
       final response = await api.apiLockesPost(
         body: CreateLockeDto(
@@ -144,7 +172,7 @@ class ApiService {
       if (response.isSuccessful && response.body != null) {
         return response.body;
       }
-      
+
       throw ApiException(response.statusCode, response.error.toString());
     } catch (e) {
       debugPrint('Error creating locke: $e');
@@ -159,7 +187,7 @@ class ApiService {
       if (response.isSuccessful && response.body != null) {
         return response.body;
       }
-      
+
       throw ApiException(response.statusCode, response.error.toString());
     } catch (e) {
       debugPrint('Error getting locke: $e');
@@ -167,7 +195,13 @@ class ApiService {
     }
   }
 
-  Future<EnrichedLockeResponseDto?> updateLocke(String id, {String? name, String? description, bool? isActive}) async {
+  Future<EnrichedLockeResponseDto?> updateLocke(
+    String id, {
+    String? name,
+    String? description,
+    bool? isActive,
+    List<String>? adminIds,
+  }) async {
     try {
       final response = await api.apiLockesIdPatch(
         id: id,
@@ -175,13 +209,14 @@ class ApiService {
           name: name,
           description: description,
           isActive: isActive,
+          adminIds: adminIds,
         ),
       );
 
       if (response.isSuccessful && response.body != null) {
         return response.body;
       }
-      
+
       throw ApiException(response.statusCode, response.error.toString());
     } catch (e) {
       debugPrint('Error updating locke: $e');
@@ -189,23 +224,25 @@ class ApiService {
     }
   }
 
-  Future<EnrichedLockeResponseDto?> recordKill(String lockeId, int count, {String? userId}) async {
+  Future<EnrichedLockeResponseDto?> recordKill(
+    String lockeId,
+    int count, {
+    String? userId,
+  }) async {
     try {
-      final response = userId != null
-          ? await api.apiLockesIdKillsPost(
-              id: lockeId, 
-              userId: userId, 
-              count: count,
-            )
-          : await api.apiLockesIdMyKillsPost(
-              id: lockeId, 
-              count: count,
-            );
+      final response =
+          userId != null
+              ? await api.apiLockesIdKillsPost(
+                id: lockeId,
+                userId: userId,
+                count: count,
+              )
+              : await api.apiLockesIdMyKillsPost(id: lockeId, count: count);
 
       if (response.isSuccessful && response.body != null) {
         return response.body;
       }
-      
+
       throw ApiException(response.statusCode, response.error.toString());
     } catch (e) {
       debugPrint('Error recording kill: $e');
@@ -220,7 +257,7 @@ class ApiService {
       if (response.isSuccessful && response.body != null) {
         return response.body!;
       }
-      
+
       throw ApiException(response.statusCode, response.error.toString());
     } catch (e) {
       debugPrint('Error getting leaderboard: $e');
@@ -232,11 +269,11 @@ class ApiService {
   Future<List<UserResponseDto>> searchUsers(String query) async {
     try {
       final response = await api.apiUsersSearchGet(query: query);
-      
+
       if (response.isSuccessful && response.body != null) {
         return response.body!;
       }
-      
+
       throw ApiException(response.statusCode, response.error.toString());
     } catch (e) {
       debugPrint('Error searching users: $e');
@@ -245,7 +282,10 @@ class ApiService {
   }
 
   // Agregar participante a un locke
-  Future<EnrichedLockeResponseDto?> addParticipant(String lockeId, String userId) async {
+  Future<EnrichedLockeResponseDto?> addParticipant(
+    String lockeId,
+    String userId,
+  ) async {
     try {
       final response = await api.apiLockesIdParticipantsPost(
         id: lockeId,
@@ -255,10 +295,109 @@ class ApiService {
       if (response.isSuccessful && response.body != null) {
         return response.body;
       }
-      
+
       throw ApiException(response.statusCode, response.error.toString());
     } catch (e) {
       debugPrint('Error adding participant: $e');
+      rethrow;
+    }
+  }
+
+  Future<List<EnrichedBattleResponseDto>> getLockleBattles(
+    String lockeId,
+  ) async {
+    try {
+      final response = await api.apiLockesIdBattlesGet(id: lockeId);
+
+      if (response.isSuccessful && response.body != null) {
+        return response.body!;
+      }
+
+      throw ApiException(response.statusCode, response.error.toString());
+    } catch (e) {
+      debugPrint('Error getting battles: $e');
+      return [];
+    }
+  }
+
+  // Create a battle in a locke
+  Future<EnrichedBattleResponseDto?> createBattle(
+    String lockeId, {
+    DateTime? battleDate,
+  }) async {
+    try {
+      final response = await api.apiLockesIdBattlesPost(
+        id: lockeId,
+        body: CreateBattleDto(
+          date: battleDate,
+          participantIds: [],
+          results: [],
+          status: CreateBattleDtoStatus.scheduled,
+          bestOf: 3,
+          notes: '',
+        ),
+      );
+
+      if (response.isSuccessful && response.body != null) {
+        return response.body;
+      }
+
+      throw ApiException(response.statusCode, response.error.toString());
+    } catch (e) {
+      debugPrint('Error creating battle: $e');
+      rethrow;
+    }
+  }
+
+  // Update a battle
+  Future<EnrichedBattleResponseDto?> updateBattle(
+    String battleId, {
+    List<ParticipantResultDto>? results,
+    UpdateBattleDtoStatus? status,
+    String? notes,
+    DateTime? date,
+  }) async {
+    try {
+      // The body would need to be defined based on the actual API implementation
+      final response = await api.apiLockesBattlesBattleIdPatch(
+        battleId: battleId,
+        body: UpdateBattleDto(
+          results: results, 
+          status: status, 
+          notes: notes,
+          date: date,
+        ),
+      );
+
+      if (response.isSuccessful && response.body != null) {
+        return response.body;
+      }
+
+      throw ApiException(response.statusCode, response.error.toString());
+    } catch (e) {
+      debugPrint('Error updating battle: $e');
+      rethrow;
+    }
+  }
+
+  // Update battle scores
+  Future<EnrichedBattleResponseDto?> updateBattleScores(
+    String battleId,
+    List<ParticipantResultDto> results,
+  ) async {
+    try {
+      final response = await api.apiLockesBattlesBattleIdPatch(
+        battleId: battleId,
+        body: UpdateBattleDto(results: results),
+      );
+
+      if (response.isSuccessful && response.body != null) {
+        return response.body;
+      }
+
+      throw ApiException(response.statusCode, response.error.toString());
+    } catch (e) {
+      debugPrint('Error updating battle scores: $e');
       rethrow;
     }
   }
@@ -272,15 +411,14 @@ class _AuthInterceptor implements Interceptor {
   @override
   Future<Request> onRequest(Request request) async {
     return request.copyWith(
-      headers: {
-        ...request.headers,
-        'Authorization': 'Bearer $token',
-      },
+      headers: {...request.headers, 'Authorization': 'Bearer $token'},
     );
   }
 
   @override
-  FutureOr<Response<BodyType>> intercept<BodyType>(Chain<BodyType> chain) async {
+  FutureOr<Response<BodyType>> intercept<BodyType>(
+    Chain<BodyType> chain,
+  ) async {
     final request = await onRequest(chain.request);
     return chain.proceed(request);
   }

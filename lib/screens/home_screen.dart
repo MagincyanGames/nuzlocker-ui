@@ -421,45 +421,48 @@ class _HomeScreenState extends State<HomeScreen> {
 
               // Lista de partidas o estado vacío
               if (_lockes.isEmpty)
-                Card(
-                  elevation: 0,
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  child: Container(
-                    padding: const EdgeInsets.all(24.0),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: colorScheme.outline.withOpacity(0.3),
-                        width: 1.5,
+                Center( // Wrap the Card with a Center widget
+                  child: Card(
+                    elevation: 0,
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    child: Container(
+                      padding: const EdgeInsets.all(24.0),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: colorScheme.outline.withOpacity(0.3),
+                          width: 1.5,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.catching_pokemon,
-                          size: 48,
-                          color: colorScheme.primary.withOpacity(0.5),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No hay partidas activas',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: colorScheme.onSurface.withOpacity(0.7),
-                            fontWeight: FontWeight.w500,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min, // Ensure Column takes minimum space
+                        children: [
+                          Icon(
+                            Icons.catching_pokemon,
+                            size: 48,
+                            color: colorScheme.primary.withOpacity(0.5),
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 24),
-                        FilledButton.tonalIcon(
-                          onPressed: () => context.push('/nueva-partida'),
-                          icon: const Icon(Icons.add),
-                          label: const Text('Crear primera partida'),
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size(220, 48),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No hay partidas activas',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: colorScheme.onSurface.withOpacity(0.7),
+                              fontWeight: FontWeight.w500,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 24),
+                          FilledButton.tonalIcon(
+                            onPressed: () => context.push('/lockes/new'), // Corrected route
+                            icon: const Icon(Icons.add),
+                            label: const Text('Crear primera partida'),
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size(220, 48),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 )

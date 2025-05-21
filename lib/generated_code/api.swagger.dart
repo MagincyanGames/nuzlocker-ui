@@ -285,35 +285,35 @@ abstract class Api extends ChopperService {
     @Query('count') required num? count,
   });
 
-  ///Registrar una batalla en un locke
+  ///Registrar o programar una batalla en un locke
   ///@param id
-  Future<chopper.Response<BattleResponseDto>> apiLockesIdBattlesPost({
+  Future<chopper.Response<EnrichedBattleResponseDto>> apiLockesIdBattlesPost({
     required String? id,
     required CreateBattleDto? body,
   }) {
-    generatedMapping.putIfAbsent(
-        BattleResponseDto, () => BattleResponseDto.fromJsonFactory);
+    generatedMapping.putIfAbsent(EnrichedBattleResponseDto,
+        () => EnrichedBattleResponseDto.fromJsonFactory);
 
     return _apiLockesIdBattlesPost(id: id, body: body);
   }
 
-  ///Registrar una batalla en un locke
+  ///Registrar o programar una batalla en un locke
   ///@param id
   @Post(
     path: '/api/lockes/{id}/battles',
     optionalBody: true,
   )
-  Future<chopper.Response<BattleResponseDto>> _apiLockesIdBattlesPost({
+  Future<chopper.Response<EnrichedBattleResponseDto>> _apiLockesIdBattlesPost({
     @Path('id') required String? id,
     @Body() required CreateBattleDto? body,
   });
 
   ///Obtener todas las batallas de un locke
   ///@param id
-  Future<chopper.Response<List<BattleResponseDto>>> apiLockesIdBattlesGet(
-      {required String? id}) {
-    generatedMapping.putIfAbsent(
-        BattleResponseDto, () => BattleResponseDto.fromJsonFactory);
+  Future<chopper.Response<List<EnrichedBattleResponseDto>>>
+      apiLockesIdBattlesGet({required String? id}) {
+    generatedMapping.putIfAbsent(EnrichedBattleResponseDto,
+        () => EnrichedBattleResponseDto.fromJsonFactory);
 
     return _apiLockesIdBattlesGet(id: id);
   }
@@ -321,8 +321,33 @@ abstract class Api extends ChopperService {
   ///Obtener todas las batallas de un locke
   ///@param id
   @Get(path: '/api/lockes/{id}/battles')
-  Future<chopper.Response<List<BattleResponseDto>>> _apiLockesIdBattlesGet(
-      {@Path('id') required String? id});
+  Future<chopper.Response<List<EnrichedBattleResponseDto>>>
+      _apiLockesIdBattlesGet({@Path('id') required String? id});
+
+  ///Actualizar una batalla (estado, resultados, etc.)
+  ///@param battleId
+  Future<chopper.Response<EnrichedBattleResponseDto>>
+      apiLockesBattlesBattleIdPatch({
+    required String? battleId,
+    required UpdateBattleDto? body,
+  }) {
+    generatedMapping.putIfAbsent(EnrichedBattleResponseDto,
+        () => EnrichedBattleResponseDto.fromJsonFactory);
+
+    return _apiLockesBattlesBattleIdPatch(battleId: battleId, body: body);
+  }
+
+  ///Actualizar una batalla (estado, resultados, etc.)
+  ///@param battleId
+  @Patch(
+    path: '/api/lockes/battles/{battleId}',
+    optionalBody: true,
+  )
+  Future<chopper.Response<EnrichedBattleResponseDto>>
+      _apiLockesBattlesBattleIdPatch({
+    @Path('battleId') required String? battleId,
+    @Body() required UpdateBattleDto? body,
+  });
 
   ///Obtener clasificación de participantes en un locke
   ///@param id
@@ -1315,12 +1340,67 @@ extension $UpdateLockeDtoExtension on UpdateLockeDto {
 }
 
 @JsonSerializable(explicitToJson: true)
+class ParticipantResultDto {
+  const ParticipantResultDto({
+    required this.userId,
+    required this.score,
+  });
+
+  factory ParticipantResultDto.fromJson(Map<String, dynamic> json) =>
+      _$ParticipantResultDtoFromJson(json);
+
+  static const toJsonFactory = _$ParticipantResultDtoToJson;
+  Map<String, dynamic> toJson() => _$ParticipantResultDtoToJson(this);
+
+  @JsonKey(name: 'userId', defaultValue: 'default')
+  final String userId;
+  @JsonKey(name: 'score')
+  final double score;
+  static const fromJsonFactory = _$ParticipantResultDtoFromJson;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other is ParticipantResultDto &&
+            (identical(other.userId, userId) ||
+                const DeepCollectionEquality().equals(other.userId, userId)) &&
+            (identical(other.score, score) ||
+                const DeepCollectionEquality().equals(other.score, score)));
+  }
+
+  @override
+  String toString() => jsonEncode(this);
+
+  @override
+  int get hashCode =>
+      const DeepCollectionEquality().hash(userId) ^
+      const DeepCollectionEquality().hash(score) ^
+      runtimeType.hashCode;
+}
+
+extension $ParticipantResultDtoExtension on ParticipantResultDto {
+  ParticipantResultDto copyWith({String? userId, double? score}) {
+    return ParticipantResultDto(
+        userId: userId ?? this.userId, score: score ?? this.score);
+  }
+
+  ParticipantResultDto copyWithWrapped(
+      {Wrapped<String>? userId, Wrapped<double>? score}) {
+    return ParticipantResultDto(
+        userId: (userId != null ? userId.value : this.userId),
+        score: (score != null ? score.value : this.score));
+  }
+}
+
+@JsonSerializable(explicitToJson: true)
 class CreateBattleDto {
   const CreateBattleDto({
-    required this.lockeId,
     required this.participantIds,
-    required this.winnerId,
-    required this.winCount,
+    required this.status,
+    required this.results,
+    required this.bestOf,
+    this.date,
+    required this.notes,
   });
 
   factory CreateBattleDto.fromJson(Map<String, dynamic> json) =>
@@ -1329,32 +1409,47 @@ class CreateBattleDto {
   static const toJsonFactory = _$CreateBattleDtoToJson;
   Map<String, dynamic> toJson() => _$CreateBattleDtoToJson(this);
 
-  @JsonKey(name: 'lockeId', defaultValue: 'default')
-  final String lockeId;
   @JsonKey(name: 'participantIds', defaultValue: <String>[])
   final List<String> participantIds;
-  @JsonKey(name: 'winnerId', defaultValue: 'default')
-  final String winnerId;
-  @JsonKey(name: 'winCount')
-  final double winCount;
+  @JsonKey(
+    name: 'status',
+    toJson: createBattleDtoStatusToJson,
+    fromJson: createBattleDtoStatusStatusFromJson,
+  )
+  final enums.CreateBattleDtoStatus status;
+  static enums.CreateBattleDtoStatus createBattleDtoStatusStatusFromJson(
+          Object? value) =>
+      createBattleDtoStatusFromJson(
+          value, enums.CreateBattleDtoStatus.scheduled);
+
+  @JsonKey(name: 'results', defaultValue: <ParticipantResultDto>[])
+  final List<ParticipantResultDto> results;
+  @JsonKey(name: 'bestOf')
+  final double bestOf;
+  @JsonKey(name: 'date')
+  final DateTime? date;
+  @JsonKey(name: 'notes', defaultValue: 'default')
+  final String notes;
   static const fromJsonFactory = _$CreateBattleDtoFromJson;
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other is CreateBattleDto &&
-            (identical(other.lockeId, lockeId) ||
-                const DeepCollectionEquality()
-                    .equals(other.lockeId, lockeId)) &&
             (identical(other.participantIds, participantIds) ||
                 const DeepCollectionEquality()
                     .equals(other.participantIds, participantIds)) &&
-            (identical(other.winnerId, winnerId) ||
+            (identical(other.status, status) ||
+                const DeepCollectionEquality().equals(other.status, status)) &&
+            (identical(other.results, results) ||
                 const DeepCollectionEquality()
-                    .equals(other.winnerId, winnerId)) &&
-            (identical(other.winCount, winCount) ||
-                const DeepCollectionEquality()
-                    .equals(other.winCount, winCount)));
+                    .equals(other.results, results)) &&
+            (identical(other.bestOf, bestOf) ||
+                const DeepCollectionEquality().equals(other.bestOf, bestOf)) &&
+            (identical(other.date, date) ||
+                const DeepCollectionEquality().equals(other.date, date)) &&
+            (identical(other.notes, notes) ||
+                const DeepCollectionEquality().equals(other.notes, notes)));
   }
 
   @override
@@ -1362,98 +1457,268 @@ class CreateBattleDto {
 
   @override
   int get hashCode =>
-      const DeepCollectionEquality().hash(lockeId) ^
       const DeepCollectionEquality().hash(participantIds) ^
-      const DeepCollectionEquality().hash(winnerId) ^
-      const DeepCollectionEquality().hash(winCount) ^
+      const DeepCollectionEquality().hash(status) ^
+      const DeepCollectionEquality().hash(results) ^
+      const DeepCollectionEquality().hash(bestOf) ^
+      const DeepCollectionEquality().hash(date) ^
+      const DeepCollectionEquality().hash(notes) ^
       runtimeType.hashCode;
 }
 
 extension $CreateBattleDtoExtension on CreateBattleDto {
   CreateBattleDto copyWith(
-      {String? lockeId,
-      List<String>? participantIds,
-      String? winnerId,
-      double? winCount}) {
+      {List<String>? participantIds,
+      enums.CreateBattleDtoStatus? status,
+      List<ParticipantResultDto>? results,
+      double? bestOf,
+      DateTime? date,
+      String? notes}) {
     return CreateBattleDto(
-        lockeId: lockeId ?? this.lockeId,
         participantIds: participantIds ?? this.participantIds,
-        winnerId: winnerId ?? this.winnerId,
-        winCount: winCount ?? this.winCount);
+        status: status ?? this.status,
+        results: results ?? this.results,
+        bestOf: bestOf ?? this.bestOf,
+        date: date ?? this.date,
+        notes: notes ?? this.notes);
   }
 
   CreateBattleDto copyWithWrapped(
-      {Wrapped<String>? lockeId,
-      Wrapped<List<String>>? participantIds,
-      Wrapped<String>? winnerId,
-      Wrapped<double>? winCount}) {
+      {Wrapped<List<String>>? participantIds,
+      Wrapped<enums.CreateBattleDtoStatus>? status,
+      Wrapped<List<ParticipantResultDto>>? results,
+      Wrapped<double>? bestOf,
+      Wrapped<DateTime?>? date,
+      Wrapped<String>? notes}) {
     return CreateBattleDto(
-        lockeId: (lockeId != null ? lockeId.value : this.lockeId),
         participantIds: (participantIds != null
             ? participantIds.value
             : this.participantIds),
-        winnerId: (winnerId != null ? winnerId.value : this.winnerId),
-        winCount: (winCount != null ? winCount.value : this.winCount));
+        status: (status != null ? status.value : this.status),
+        results: (results != null ? results.value : this.results),
+        bestOf: (bestOf != null ? bestOf.value : this.bestOf),
+        date: (date != null ? date.value : this.date),
+        notes: (notes != null ? notes.value : this.notes));
   }
 }
 
 @JsonSerializable(explicitToJson: true)
-class BattleResponseDto {
-  const BattleResponseDto({
-    required this.id,
-    required this.participantIds,
-    required this.winnerId,
-    required this.winCount,
-    required this.lockeId,
-    required this.date,
-    required this.createdAt,
+class EnrichedResultDto {
+  const EnrichedResultDto({
+    required this.userId,
+    required this.score,
+    required this.username,
+    required this.name,
   });
 
-  factory BattleResponseDto.fromJson(Map<String, dynamic> json) =>
-      _$BattleResponseDtoFromJson(json);
+  factory EnrichedResultDto.fromJson(Map<String, dynamic> json) =>
+      _$EnrichedResultDtoFromJson(json);
 
-  static const toJsonFactory = _$BattleResponseDtoToJson;
-  Map<String, dynamic> toJson() => _$BattleResponseDtoToJson(this);
+  static const toJsonFactory = _$EnrichedResultDtoToJson;
+  Map<String, dynamic> toJson() => _$EnrichedResultDtoToJson(this);
+
+  @JsonKey(name: 'userId', defaultValue: 'default')
+  final String userId;
+  @JsonKey(name: 'score')
+  final double score;
+  @JsonKey(name: 'username', defaultValue: 'default')
+  final String username;
+  @JsonKey(name: 'name', defaultValue: 'default')
+  final String name;
+  static const fromJsonFactory = _$EnrichedResultDtoFromJson;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other is EnrichedResultDto &&
+            (identical(other.userId, userId) ||
+                const DeepCollectionEquality().equals(other.userId, userId)) &&
+            (identical(other.score, score) ||
+                const DeepCollectionEquality().equals(other.score, score)) &&
+            (identical(other.username, username) ||
+                const DeepCollectionEquality()
+                    .equals(other.username, username)) &&
+            (identical(other.name, name) ||
+                const DeepCollectionEquality().equals(other.name, name)));
+  }
+
+  @override
+  String toString() => jsonEncode(this);
+
+  @override
+  int get hashCode =>
+      const DeepCollectionEquality().hash(userId) ^
+      const DeepCollectionEquality().hash(score) ^
+      const DeepCollectionEquality().hash(username) ^
+      const DeepCollectionEquality().hash(name) ^
+      runtimeType.hashCode;
+}
+
+extension $EnrichedResultDtoExtension on EnrichedResultDto {
+  EnrichedResultDto copyWith(
+      {String? userId, double? score, String? username, String? name}) {
+    return EnrichedResultDto(
+        userId: userId ?? this.userId,
+        score: score ?? this.score,
+        username: username ?? this.username,
+        name: name ?? this.name);
+  }
+
+  EnrichedResultDto copyWithWrapped(
+      {Wrapped<String>? userId,
+      Wrapped<double>? score,
+      Wrapped<String>? username,
+      Wrapped<String>? name}) {
+    return EnrichedResultDto(
+        userId: (userId != null ? userId.value : this.userId),
+        score: (score != null ? score.value : this.score),
+        username: (username != null ? username.value : this.username),
+        name: (name != null ? name.value : this.name));
+  }
+}
+
+@JsonSerializable(explicitToJson: true)
+class EnrichedParticipantDto {
+  const EnrichedParticipantDto({
+    required this.userId,
+    required this.username,
+    required this.name,
+  });
+
+  factory EnrichedParticipantDto.fromJson(Map<String, dynamic> json) =>
+      _$EnrichedParticipantDtoFromJson(json);
+
+  static const toJsonFactory = _$EnrichedParticipantDtoToJson;
+  Map<String, dynamic> toJson() => _$EnrichedParticipantDtoToJson(this);
+
+  @JsonKey(name: 'userId', defaultValue: 'default')
+  final String userId;
+  @JsonKey(name: 'username', defaultValue: 'default')
+  final String username;
+  @JsonKey(name: 'name', defaultValue: 'default')
+  final String name;
+  static const fromJsonFactory = _$EnrichedParticipantDtoFromJson;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other is EnrichedParticipantDto &&
+            (identical(other.userId, userId) ||
+                const DeepCollectionEquality().equals(other.userId, userId)) &&
+            (identical(other.username, username) ||
+                const DeepCollectionEquality()
+                    .equals(other.username, username)) &&
+            (identical(other.name, name) ||
+                const DeepCollectionEquality().equals(other.name, name)));
+  }
+
+  @override
+  String toString() => jsonEncode(this);
+
+  @override
+  int get hashCode =>
+      const DeepCollectionEquality().hash(userId) ^
+      const DeepCollectionEquality().hash(username) ^
+      const DeepCollectionEquality().hash(name) ^
+      runtimeType.hashCode;
+}
+
+extension $EnrichedParticipantDtoExtension on EnrichedParticipantDto {
+  EnrichedParticipantDto copyWith(
+      {String? userId, String? username, String? name}) {
+    return EnrichedParticipantDto(
+        userId: userId ?? this.userId,
+        username: username ?? this.username,
+        name: name ?? this.name);
+  }
+
+  EnrichedParticipantDto copyWithWrapped(
+      {Wrapped<String>? userId,
+      Wrapped<String>? username,
+      Wrapped<String>? name}) {
+    return EnrichedParticipantDto(
+        userId: (userId != null ? userId.value : this.userId),
+        username: (username != null ? username.value : this.username),
+        name: (name != null ? name.value : this.name));
+  }
+}
+
+@JsonSerializable(explicitToJson: true)
+class EnrichedBattleResponseDto {
+  const EnrichedBattleResponseDto({
+    required this.id,
+    required this.participantIds,
+    required this.status,
+    required this.results,
+    required this.bestOf,
+    required this.lockeId,
+    this.date,
+    this.notes,
+    required this.createdAt,
+    this.participants,
+  });
+
+  factory EnrichedBattleResponseDto.fromJson(Map<String, dynamic> json) =>
+      _$EnrichedBattleResponseDtoFromJson(json);
+
+  static const toJsonFactory = _$EnrichedBattleResponseDtoToJson;
+  Map<String, dynamic> toJson() => _$EnrichedBattleResponseDtoToJson(this);
 
   @JsonKey(name: '_id', defaultValue: 'default')
   final String id;
   @JsonKey(name: 'participantIds', defaultValue: <String>[])
   final List<String> participantIds;
-  @JsonKey(name: 'winnerId', defaultValue: 'default')
-  final String winnerId;
-  @JsonKey(name: 'winCount')
-  final double winCount;
+  @JsonKey(
+    name: 'status',
+    toJson: enrichedBattleResponseDtoStatusToJson,
+    fromJson: enrichedBattleResponseDtoStatusFromJson,
+  )
+  final enums.EnrichedBattleResponseDtoStatus status;
+  @JsonKey(name: 'results', defaultValue: <EnrichedResultDto>[])
+  final List<EnrichedResultDto> results;
+  @JsonKey(name: 'bestOf')
+  final double bestOf;
   @JsonKey(name: 'lockeId', defaultValue: 'default')
   final String lockeId;
   @JsonKey(name: 'date')
-  final DateTime date;
+  final DateTime? date;
+  @JsonKey(name: 'notes', defaultValue: 'default')
+  final String? notes;
   @JsonKey(name: 'createdAt')
   final DateTime createdAt;
-  static const fromJsonFactory = _$BattleResponseDtoFromJson;
+  @JsonKey(name: 'participants', defaultValue: <EnrichedParticipantDto>[])
+  final List<EnrichedParticipantDto>? participants;
+  static const fromJsonFactory = _$EnrichedBattleResponseDtoFromJson;
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        (other is BattleResponseDto &&
+        (other is EnrichedBattleResponseDto &&
             (identical(other.id, id) ||
                 const DeepCollectionEquality().equals(other.id, id)) &&
             (identical(other.participantIds, participantIds) ||
                 const DeepCollectionEquality()
                     .equals(other.participantIds, participantIds)) &&
-            (identical(other.winnerId, winnerId) ||
+            (identical(other.status, status) ||
+                const DeepCollectionEquality().equals(other.status, status)) &&
+            (identical(other.results, results) ||
                 const DeepCollectionEquality()
-                    .equals(other.winnerId, winnerId)) &&
-            (identical(other.winCount, winCount) ||
-                const DeepCollectionEquality()
-                    .equals(other.winCount, winCount)) &&
+                    .equals(other.results, results)) &&
+            (identical(other.bestOf, bestOf) ||
+                const DeepCollectionEquality().equals(other.bestOf, bestOf)) &&
             (identical(other.lockeId, lockeId) ||
                 const DeepCollectionEquality()
                     .equals(other.lockeId, lockeId)) &&
             (identical(other.date, date) ||
                 const DeepCollectionEquality().equals(other.date, date)) &&
+            (identical(other.notes, notes) ||
+                const DeepCollectionEquality().equals(other.notes, notes)) &&
             (identical(other.createdAt, createdAt) ||
                 const DeepCollectionEquality()
-                    .equals(other.createdAt, createdAt)));
+                    .equals(other.createdAt, createdAt)) &&
+            (identical(other.participants, participants) ||
+                const DeepCollectionEquality()
+                    .equals(other.participants, participants)));
   }
 
   @override
@@ -1463,51 +1728,149 @@ class BattleResponseDto {
   int get hashCode =>
       const DeepCollectionEquality().hash(id) ^
       const DeepCollectionEquality().hash(participantIds) ^
-      const DeepCollectionEquality().hash(winnerId) ^
-      const DeepCollectionEquality().hash(winCount) ^
+      const DeepCollectionEquality().hash(status) ^
+      const DeepCollectionEquality().hash(results) ^
+      const DeepCollectionEquality().hash(bestOf) ^
       const DeepCollectionEquality().hash(lockeId) ^
       const DeepCollectionEquality().hash(date) ^
+      const DeepCollectionEquality().hash(notes) ^
       const DeepCollectionEquality().hash(createdAt) ^
+      const DeepCollectionEquality().hash(participants) ^
       runtimeType.hashCode;
 }
 
-extension $BattleResponseDtoExtension on BattleResponseDto {
-  BattleResponseDto copyWith(
+extension $EnrichedBattleResponseDtoExtension on EnrichedBattleResponseDto {
+  EnrichedBattleResponseDto copyWith(
       {String? id,
       List<String>? participantIds,
-      String? winnerId,
-      double? winCount,
+      enums.EnrichedBattleResponseDtoStatus? status,
+      List<EnrichedResultDto>? results,
+      double? bestOf,
       String? lockeId,
       DateTime? date,
-      DateTime? createdAt}) {
-    return BattleResponseDto(
+      String? notes,
+      DateTime? createdAt,
+      List<EnrichedParticipantDto>? participants}) {
+    return EnrichedBattleResponseDto(
         id: id ?? this.id,
         participantIds: participantIds ?? this.participantIds,
-        winnerId: winnerId ?? this.winnerId,
-        winCount: winCount ?? this.winCount,
+        status: status ?? this.status,
+        results: results ?? this.results,
+        bestOf: bestOf ?? this.bestOf,
         lockeId: lockeId ?? this.lockeId,
         date: date ?? this.date,
-        createdAt: createdAt ?? this.createdAt);
+        notes: notes ?? this.notes,
+        createdAt: createdAt ?? this.createdAt,
+        participants: participants ?? this.participants);
   }
 
-  BattleResponseDto copyWithWrapped(
+  EnrichedBattleResponseDto copyWithWrapped(
       {Wrapped<String>? id,
       Wrapped<List<String>>? participantIds,
-      Wrapped<String>? winnerId,
-      Wrapped<double>? winCount,
+      Wrapped<enums.EnrichedBattleResponseDtoStatus>? status,
+      Wrapped<List<EnrichedResultDto>>? results,
+      Wrapped<double>? bestOf,
       Wrapped<String>? lockeId,
-      Wrapped<DateTime>? date,
-      Wrapped<DateTime>? createdAt}) {
-    return BattleResponseDto(
+      Wrapped<DateTime?>? date,
+      Wrapped<String?>? notes,
+      Wrapped<DateTime>? createdAt,
+      Wrapped<List<EnrichedParticipantDto>?>? participants}) {
+    return EnrichedBattleResponseDto(
         id: (id != null ? id.value : this.id),
         participantIds: (participantIds != null
             ? participantIds.value
             : this.participantIds),
-        winnerId: (winnerId != null ? winnerId.value : this.winnerId),
-        winCount: (winCount != null ? winCount.value : this.winCount),
+        status: (status != null ? status.value : this.status),
+        results: (results != null ? results.value : this.results),
+        bestOf: (bestOf != null ? bestOf.value : this.bestOf),
         lockeId: (lockeId != null ? lockeId.value : this.lockeId),
         date: (date != null ? date.value : this.date),
-        createdAt: (createdAt != null ? createdAt.value : this.createdAt));
+        notes: (notes != null ? notes.value : this.notes),
+        createdAt: (createdAt != null ? createdAt.value : this.createdAt),
+        participants:
+            (participants != null ? participants.value : this.participants));
+  }
+}
+
+@JsonSerializable(explicitToJson: true)
+class UpdateBattleDto {
+  const UpdateBattleDto({
+    this.status,
+    this.results,
+    this.date,
+    this.notes,
+  });
+
+  factory UpdateBattleDto.fromJson(Map<String, dynamic> json) =>
+      _$UpdateBattleDtoFromJson(json);
+
+  static const toJsonFactory = _$UpdateBattleDtoToJson;
+  Map<String, dynamic> toJson() => _$UpdateBattleDtoToJson(this);
+
+  @JsonKey(
+    name: 'status',
+    toJson: updateBattleDtoStatusNullableToJson,
+    fromJson: updateBattleDtoStatusNullableFromJson,
+  )
+  final enums.UpdateBattleDtoStatus? status;
+  @JsonKey(name: 'results', defaultValue: <ParticipantResultDto>[])
+  final List<ParticipantResultDto>? results;
+  @JsonKey(name: 'date')
+  final DateTime? date;
+  @JsonKey(name: 'notes', defaultValue: 'default')
+  final String? notes;
+  static const fromJsonFactory = _$UpdateBattleDtoFromJson;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other is UpdateBattleDto &&
+            (identical(other.status, status) ||
+                const DeepCollectionEquality().equals(other.status, status)) &&
+            (identical(other.results, results) ||
+                const DeepCollectionEquality()
+                    .equals(other.results, results)) &&
+            (identical(other.date, date) ||
+                const DeepCollectionEquality().equals(other.date, date)) &&
+            (identical(other.notes, notes) ||
+                const DeepCollectionEquality().equals(other.notes, notes)));
+  }
+
+  @override
+  String toString() => jsonEncode(this);
+
+  @override
+  int get hashCode =>
+      const DeepCollectionEquality().hash(status) ^
+      const DeepCollectionEquality().hash(results) ^
+      const DeepCollectionEquality().hash(date) ^
+      const DeepCollectionEquality().hash(notes) ^
+      runtimeType.hashCode;
+}
+
+extension $UpdateBattleDtoExtension on UpdateBattleDto {
+  UpdateBattleDto copyWith(
+      {enums.UpdateBattleDtoStatus? status,
+      List<ParticipantResultDto>? results,
+      DateTime? date,
+      String? notes}) {
+    return UpdateBattleDto(
+        status: status ?? this.status,
+        results: results ?? this.results,
+        date: date ?? this.date,
+        notes: notes ?? this.notes);
+  }
+
+  UpdateBattleDto copyWithWrapped(
+      {Wrapped<enums.UpdateBattleDtoStatus?>? status,
+      Wrapped<List<ParticipantResultDto>?>? results,
+      Wrapped<DateTime?>? date,
+      Wrapped<String?>? notes}) {
+    return UpdateBattleDto(
+        status: (status != null ? status.value : this.status),
+        results: (results != null ? results.value : this.results),
+        date: (date != null ? date.value : this.date),
+        notes: (notes != null ? notes.value : this.notes));
   }
 }
 
@@ -1650,6 +2013,227 @@ extension $AddParticipantDtoExtension on AddParticipantDto {
     return AddParticipantDto(
         userId: (userId != null ? userId.value : this.userId));
   }
+}
+
+String? createBattleDtoStatusNullableToJson(
+    enums.CreateBattleDtoStatus? createBattleDtoStatus) {
+  return createBattleDtoStatus?.value;
+}
+
+String? createBattleDtoStatusToJson(
+    enums.CreateBattleDtoStatus createBattleDtoStatus) {
+  return createBattleDtoStatus.value;
+}
+
+enums.CreateBattleDtoStatus createBattleDtoStatusFromJson(
+  Object? createBattleDtoStatus, [
+  enums.CreateBattleDtoStatus? defaultValue,
+]) {
+  return enums.CreateBattleDtoStatus.values
+          .firstWhereOrNull((e) => e.value == createBattleDtoStatus) ??
+      defaultValue ??
+      enums.CreateBattleDtoStatus.swaggerGeneratedUnknown;
+}
+
+enums.CreateBattleDtoStatus? createBattleDtoStatusNullableFromJson(
+  Object? createBattleDtoStatus, [
+  enums.CreateBattleDtoStatus? defaultValue,
+]) {
+  if (createBattleDtoStatus == null) {
+    return null;
+  }
+  return enums.CreateBattleDtoStatus.values
+          .firstWhereOrNull((e) => e.value == createBattleDtoStatus) ??
+      defaultValue;
+}
+
+String createBattleDtoStatusExplodedListToJson(
+    List<enums.CreateBattleDtoStatus>? createBattleDtoStatus) {
+  return createBattleDtoStatus?.map((e) => e.value!).join(',') ?? '';
+}
+
+List<String> createBattleDtoStatusListToJson(
+    List<enums.CreateBattleDtoStatus>? createBattleDtoStatus) {
+  if (createBattleDtoStatus == null) {
+    return [];
+  }
+
+  return createBattleDtoStatus.map((e) => e.value!).toList();
+}
+
+List<enums.CreateBattleDtoStatus> createBattleDtoStatusListFromJson(
+  List? createBattleDtoStatus, [
+  List<enums.CreateBattleDtoStatus>? defaultValue,
+]) {
+  if (createBattleDtoStatus == null) {
+    return defaultValue ?? [];
+  }
+
+  return createBattleDtoStatus
+      .map((e) => createBattleDtoStatusFromJson(e.toString()))
+      .toList();
+}
+
+List<enums.CreateBattleDtoStatus>? createBattleDtoStatusNullableListFromJson(
+  List? createBattleDtoStatus, [
+  List<enums.CreateBattleDtoStatus>? defaultValue,
+]) {
+  if (createBattleDtoStatus == null) {
+    return defaultValue;
+  }
+
+  return createBattleDtoStatus
+      .map((e) => createBattleDtoStatusFromJson(e.toString()))
+      .toList();
+}
+
+String? enrichedBattleResponseDtoStatusNullableToJson(
+    enums.EnrichedBattleResponseDtoStatus? enrichedBattleResponseDtoStatus) {
+  return enrichedBattleResponseDtoStatus?.value;
+}
+
+String? enrichedBattleResponseDtoStatusToJson(
+    enums.EnrichedBattleResponseDtoStatus enrichedBattleResponseDtoStatus) {
+  return enrichedBattleResponseDtoStatus.value;
+}
+
+enums.EnrichedBattleResponseDtoStatus enrichedBattleResponseDtoStatusFromJson(
+  Object? enrichedBattleResponseDtoStatus, [
+  enums.EnrichedBattleResponseDtoStatus? defaultValue,
+]) {
+  return enums.EnrichedBattleResponseDtoStatus.values.firstWhereOrNull(
+          (e) => e.value == enrichedBattleResponseDtoStatus) ??
+      defaultValue ??
+      enums.EnrichedBattleResponseDtoStatus.swaggerGeneratedUnknown;
+}
+
+enums.EnrichedBattleResponseDtoStatus?
+    enrichedBattleResponseDtoStatusNullableFromJson(
+  Object? enrichedBattleResponseDtoStatus, [
+  enums.EnrichedBattleResponseDtoStatus? defaultValue,
+]) {
+  if (enrichedBattleResponseDtoStatus == null) {
+    return null;
+  }
+  return enums.EnrichedBattleResponseDtoStatus.values.firstWhereOrNull(
+          (e) => e.value == enrichedBattleResponseDtoStatus) ??
+      defaultValue;
+}
+
+String enrichedBattleResponseDtoStatusExplodedListToJson(
+    List<enums.EnrichedBattleResponseDtoStatus>?
+        enrichedBattleResponseDtoStatus) {
+  return enrichedBattleResponseDtoStatus?.map((e) => e.value!).join(',') ?? '';
+}
+
+List<String> enrichedBattleResponseDtoStatusListToJson(
+    List<enums.EnrichedBattleResponseDtoStatus>?
+        enrichedBattleResponseDtoStatus) {
+  if (enrichedBattleResponseDtoStatus == null) {
+    return [];
+  }
+
+  return enrichedBattleResponseDtoStatus.map((e) => e.value!).toList();
+}
+
+List<enums.EnrichedBattleResponseDtoStatus>
+    enrichedBattleResponseDtoStatusListFromJson(
+  List? enrichedBattleResponseDtoStatus, [
+  List<enums.EnrichedBattleResponseDtoStatus>? defaultValue,
+]) {
+  if (enrichedBattleResponseDtoStatus == null) {
+    return defaultValue ?? [];
+  }
+
+  return enrichedBattleResponseDtoStatus
+      .map((e) => enrichedBattleResponseDtoStatusFromJson(e.toString()))
+      .toList();
+}
+
+List<enums.EnrichedBattleResponseDtoStatus>?
+    enrichedBattleResponseDtoStatusNullableListFromJson(
+  List? enrichedBattleResponseDtoStatus, [
+  List<enums.EnrichedBattleResponseDtoStatus>? defaultValue,
+]) {
+  if (enrichedBattleResponseDtoStatus == null) {
+    return defaultValue;
+  }
+
+  return enrichedBattleResponseDtoStatus
+      .map((e) => enrichedBattleResponseDtoStatusFromJson(e.toString()))
+      .toList();
+}
+
+String? updateBattleDtoStatusNullableToJson(
+    enums.UpdateBattleDtoStatus? updateBattleDtoStatus) {
+  return updateBattleDtoStatus?.value;
+}
+
+String? updateBattleDtoStatusToJson(
+    enums.UpdateBattleDtoStatus updateBattleDtoStatus) {
+  return updateBattleDtoStatus.value;
+}
+
+enums.UpdateBattleDtoStatus updateBattleDtoStatusFromJson(
+  Object? updateBattleDtoStatus, [
+  enums.UpdateBattleDtoStatus? defaultValue,
+]) {
+  return enums.UpdateBattleDtoStatus.values
+          .firstWhereOrNull((e) => e.value == updateBattleDtoStatus) ??
+      defaultValue ??
+      enums.UpdateBattleDtoStatus.swaggerGeneratedUnknown;
+}
+
+enums.UpdateBattleDtoStatus? updateBattleDtoStatusNullableFromJson(
+  Object? updateBattleDtoStatus, [
+  enums.UpdateBattleDtoStatus? defaultValue,
+]) {
+  if (updateBattleDtoStatus == null) {
+    return null;
+  }
+  return enums.UpdateBattleDtoStatus.values
+          .firstWhereOrNull((e) => e.value == updateBattleDtoStatus) ??
+      defaultValue;
+}
+
+String updateBattleDtoStatusExplodedListToJson(
+    List<enums.UpdateBattleDtoStatus>? updateBattleDtoStatus) {
+  return updateBattleDtoStatus?.map((e) => e.value!).join(',') ?? '';
+}
+
+List<String> updateBattleDtoStatusListToJson(
+    List<enums.UpdateBattleDtoStatus>? updateBattleDtoStatus) {
+  if (updateBattleDtoStatus == null) {
+    return [];
+  }
+
+  return updateBattleDtoStatus.map((e) => e.value!).toList();
+}
+
+List<enums.UpdateBattleDtoStatus> updateBattleDtoStatusListFromJson(
+  List? updateBattleDtoStatus, [
+  List<enums.UpdateBattleDtoStatus>? defaultValue,
+]) {
+  if (updateBattleDtoStatus == null) {
+    return defaultValue ?? [];
+  }
+
+  return updateBattleDtoStatus
+      .map((e) => updateBattleDtoStatusFromJson(e.toString()))
+      .toList();
+}
+
+List<enums.UpdateBattleDtoStatus>? updateBattleDtoStatusNullableListFromJson(
+  List? updateBattleDtoStatus, [
+  List<enums.UpdateBattleDtoStatus>? defaultValue,
+]) {
+  if (updateBattleDtoStatus == null) {
+    return defaultValue;
+  }
+
+  return updateBattleDtoStatus
+      .map((e) => updateBattleDtoStatusFromJson(e.toString()))
+      .toList();
 }
 
 String? apiLockesGetActiveNullableToJson(

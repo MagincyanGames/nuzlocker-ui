@@ -9,6 +9,7 @@ import '../widgets/back_app_bar.dart';
 import '../widgets/edit_deaths_dialog.dart';
 import '../widgets/add_participant_dialog.dart';
 import '../widgets/complete_locke_dialog.dart';
+import '../widgets/tabs/battles_tab.dart';
 
 class LockeDetailsScreen extends StatefulWidget {
   final String lockeId;
@@ -19,7 +20,8 @@ class LockeDetailsScreen extends StatefulWidget {
   State<LockeDetailsScreen> createState() => _LockeDetailsScreenState();
 }
 
-class _LockeDetailsScreenState extends State<LockeDetailsScreen> {
+class _LockeDetailsScreenState extends State<LockeDetailsScreen>
+    with SingleTickerProviderStateMixin {
   bool _isLoading = true;
   bool _isRefreshing = false;
   EnrichedLockeResponseDto? _locke;
@@ -27,19 +29,31 @@ class _LockeDetailsScreenState extends State<LockeDetailsScreen> {
   String? _loadingParticipantId;
   TextEditingController _deathsController = TextEditingController();
 
+  // Tab controller
+  late TabController _tabController;
+
   // Variables for dialog state
   bool _showEditDeathsDialog = false;
   EnrichedParticipantResponseDto? _selectedParticipant;
 
+  // Variables for user management
+  String? _loadingAdminId;
+  String? _removingUserId;
+
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(
+      length: 4,
+      vsync: this,
+    ); // Changed length to 4
     _loadLockeDetails();
   }
 
   @override
   void dispose() {
     _deathsController.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -110,6 +124,102 @@ class _LockeDetailsScreenState extends State<LockeDetailsScreen> {
           _loadingParticipantId = null;
         });
       }
+    }
+  }
+
+  // User Management Methods
+  Future<void> _toggleAdminStatus(String userId, bool makeAdmin) async {
+    if (!_isUserAdmin()) return;
+
+    try {
+      setState(() {
+        _loadingAdminId = userId;
+      });
+
+      final apiService = ApiService();
+      final adminIds = [..._locke!.adminIds];
+
+      if (makeAdmin && !adminIds.contains(userId)) {
+        adminIds.add(userId);
+      } else if (!makeAdmin && adminIds.contains(userId)) {
+        adminIds.remove(userId);
+      }
+
+      await apiService.updateLocke(widget.lockeId, adminIds: adminIds);
+
+      await _loadLockeDetails(isRefreshing: true);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al actualizar estado de administrador: $e'),
+        ),
+      );
+      debugPrint('Error updating admin status: $e');
+    } finally {
+      setState(() {
+        _loadingAdminId = null;
+      });
+    }
+  }
+
+  Future<void> _removeParticipant(String userId) async {
+    if (!_isUserAdmin()) return;
+
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Confirmar eliminación'),
+            content: const Text(
+              '¿Estás seguro de que quieres eliminar a este participante? Se perderán todos sus datos en esta partida.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                ),
+                child: const Text('Eliminar'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      setState(() {
+        _removingUserId = userId;
+      });
+
+      // This would require a new API endpoint - for now we'd update the locke with
+      // a new participants list excluding this user
+      // await apiService.removeParticipant(widget.lockeId, userId);
+
+      // Since we don't have a direct API for removal, we'd need this on the backend
+      // For now, show a message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'La eliminación de participantes no está implementada en la API actual',
+          ),
+        ),
+      );
+
+      // await _loadLockeDetails(isRefreshing: true);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al eliminar participante: $e')),
+      );
+    } finally {
+      setState(() {
+        _removingUserId = null;
+      });
     }
   }
 
@@ -211,8 +321,8 @@ class _LockeDetailsScreenState extends State<LockeDetailsScreen> {
         ) ??
         0;
 
-    // Get max deaths for chart scaling
-    final maxDeaths =
+    // Get max deaths for chart scaling (used in Progress Tab for deaths chart)
+    final maxDeathsForChart = // Renamed to avoid conflict if another maxDeaths is needed elsewhere
         _locke!.participants?.fold<int>(
           1, // Min 1 to avoid division by zero
           (max, participant) =>
@@ -234,15 +344,183 @@ class _LockeDetailsScreenState extends State<LockeDetailsScreen> {
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _handleRefresh,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Main Info Card
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          // Tab 1: General
+          _buildGeneralTab(
+            colorScheme,
+            userService,
+            createdDate,
+            updatedDate,
+            totalDeaths, // Added totalDeaths
+          ),
+
+          // Tab 2: Progress
+          _buildProgressTab(
+            colorScheme,
+            userService,
+            // totalDeaths, // Removed totalDeaths
+            maxDeathsForChart,
+          ),
+
+          // Tab 3: Battles
+          _buildBattlesTab(),
+
+          // Tab 4: User Management
+          _buildUserManagementTab(colorScheme, userService),
+        ],
+      ),
+      bottomNavigationBar: TabBar(
+        controller: _tabController,
+        tabs: [
+          Tab(icon: Icon(Icons.info_outline), text: 'General'), // Changed
+          Tab(icon: Icon(Icons.bar_chart), text: 'Progreso'), // New Tab
+          Tab(icon: Icon(Icons.emoji_events), text: 'Batallas'),
+          Tab(icon: Icon(Icons.people), text: 'Participantes'),
+        ],
+      ),
+    );
+  }
+
+  // Tab content widgets
+  Widget _buildGeneralTab(
+    // Renamed from _buildStatisticsTab
+    ColorScheme colorScheme,
+    UserService userService,
+    String createdDate,
+    String updatedDate,
+    int totalDeaths, // Added totalDeaths
+  ) {
+    EnrichedParticipantResponseDto? currentUserParticipant;
+    if (_locke?.participants != null && userService.currentUser != null) {
+      try {
+        currentUserParticipant = _locke!.participants!.firstWhere(
+          (p) => p.userId == userService.currentUser!.id,
+        );
+      } catch (e) {
+        // Si firstWhere lanza una excepción (ej. StateError si no se encuentra el elemento),
+        // currentUserParticipant permanecerá como null, que es el comportamiento deseado.
+        // Opcionalmente, se puede añadir un debugPrint para registrar esta situación:
+        // debugPrint('El usuario actual no es un participante en esta partida.');
+      }
+    }
+
+    final currentUserDeaths = currentUserParticipant?.deaths?.toInt() ?? 0;
+    final currentUserPoints = currentUserParticipant?.points?.toInt() ?? 0;
+
+    return RefreshIndicator(
+      onRefresh: _handleRefresh,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Main Info Card
+            Card(
+              elevation: 1,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.videogame_asset),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _locke!.name ?? 'Sin nombre',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        Chip(
+                          label: Text(
+                            _locke!.isActive ? 'Activa' : 'Completada',
+                            style: TextStyle(
+                              color:
+                                  _locke!.isActive
+                                      ? colorScheme.onPrimaryContainer
+                                      : colorScheme.onSecondaryContainer,
+                            ),
+                          ),
+                          backgroundColor:
+                              _locke!.isActive
+                                  ? colorScheme.primaryContainer
+                                  : colorScheme.secondaryContainer,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Fecha inicio: $createdDate'),
+                        const SizedBox(height: 4),
+                        Text('Última actualización: $updatedDate'),
+                      ],
+                    ),
+                  ),
+                  // Admin Actions for completing locke
+                  if (_isUserAdmin() && _locke!.isActive) ...[
+                    const Divider(),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0,
+                        vertical: 8.0,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          FilledButton.tonalIcon(
+                            onPressed: () {
+                              // Mostrar el diálogo para marcar como completado
+                              showDialog(
+                                context: context,
+                                builder:
+                                    (context) => CompleteLockeDialog(
+                                      lockeId: widget.lockeId,
+                                      lockeName:
+                                          _locke!.name ?? "Partida sin nombre",
+                                      onSuccess: () {
+                                        _loadLockeDetails();
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              '¡Nuzlocke completado con éxito!',
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                              );
+                            },
+                            icon: const Icon(Icons.check_circle),
+                            label: const Text('Marcar como completada'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 16), // Added spacing
+            // Current User Stats Card (MOVED HERE)
+            if (userService.isAuthenticated &&
+                currentUserParticipant != null &&
+                currentUserParticipant
+                    .userId
+                    .isNotEmpty) // Added check for userId to ensure participant was found
               Card(
                 elevation: 1,
                 child: Column(
@@ -250,68 +528,8 @@ class _LockeDetailsScreenState extends State<LockeDetailsScreen> {
                   children: [
                     Padding(
                       padding: const EdgeInsets.all(16.0),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.videogame_asset),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _locke!.name ?? 'Sin nombre',
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          Chip(
-                            label: Text(
-                              _locke!.isActive ? 'Activa' : 'Completada',
-                              style: TextStyle(
-                                color:
-                                    _locke!.isActive
-                                        ? colorScheme.onPrimaryContainer
-                                        : colorScheme.onSecondaryContainer,
-                              ),
-                            ),
-                            backgroundColor:
-                                _locke!.isActive
-                                    ? colorScheme.primaryContainer
-                                    : colorScheme.secondaryContainer,
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    /*
-                    if (_locke!.description != null)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Text(
-                          _locke!.description!,
-                          style: TextStyle(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                      */
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Fecha inicio: $createdDate'),
-                          const SizedBox(height: 4),
-                          Text('Última actualización: $updatedDate'),
-                        ],
-                      ),
-                    ),
-
-                    const Divider(),
-
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
                       child: Text(
-                        'Progreso',
+                        'Tu Progreso',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -319,7 +537,6 @@ class _LockeDetailsScreenState extends State<LockeDetailsScreen> {
                         ),
                       ),
                     ),
-
                     Padding(
                       padding: const EdgeInsets.only(
                         left: 16.0,
@@ -330,21 +547,29 @@ class _LockeDetailsScreenState extends State<LockeDetailsScreen> {
                         children: [
                           Expanded(
                             child: Card(
-                              color: colorScheme.surfaceVariant.withOpacity(
-                                0.3,
-                              ),
+                              color: colorScheme.errorContainer.withOpacity(
+                                0.6,
+                              ), // Changed for better contrast
                               child: Padding(
                                 padding: const EdgeInsets.all(16.0),
                                 child: Column(
                                   children: [
                                     Text(
-                                      '${_locke!.participants?.length ?? 0}',
-                                      style: const TextStyle(
+                                      '$currentUserDeaths',
+                                      style: TextStyle(
                                         fontSize: 24,
                                         fontWeight: FontWeight.bold,
+                                        color:
+                                            colorScheme
+                                                .onErrorContainer, // Adjusted to onErrorContainer
                                       ),
                                     ),
-                                    const Text('Participantes'),
+                                    Text(
+                                      'Tus Muertes',
+                                      style: TextStyle(
+                                        color: colorScheme.onErrorContainer,
+                                      ), // Adjusted to onErrorContainer
+                                    ),
                                   ],
                                 ),
                               ),
@@ -353,21 +578,29 @@ class _LockeDetailsScreenState extends State<LockeDetailsScreen> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Card(
-                              color: colorScheme.errorContainer.withOpacity(
-                                0.3,
-                              ),
+                              color: colorScheme.primaryContainer.withOpacity(
+                                0.6,
+                              ), // Changed for better contrast
                               child: Padding(
                                 padding: const EdgeInsets.all(16.0),
                                 child: Column(
                                   children: [
                                     Text(
-                                      '$totalDeaths',
-                                      style: const TextStyle(
+                                      '$currentUserPoints',
+                                      style: TextStyle(
                                         fontSize: 24,
                                         fontWeight: FontWeight.bold,
+                                        color:
+                                            colorScheme
+                                                .onPrimaryContainer, // Adjusted to onPrimaryContainer
                                       ),
                                     ),
-                                    const Text('Muertes totales'),
+                                    Text(
+                                      'Tus Victorias', // Changed from "Tus Puntos"
+                                      style: TextStyle(
+                                        color: colorScheme.onPrimaryContainer,
+                                      ), // Adjusted to onPrimaryContainer
+                                    ),
                                   ],
                                 ),
                               ),
@@ -376,297 +609,827 @@ class _LockeDetailsScreenState extends State<LockeDetailsScreen> {
                         ],
                       ),
                     ),
-
-                    // Admin Actions
-                    if (_isUserAdmin() && _locke!.isActive)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16.0,
-                          vertical: 8.0,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            FilledButton.tonalIcon(
-                              onPressed: () {
-                                // Mostrar el diálogo para marcar como completado
-                                showDialog(
-                                  context: context,
-                                  builder: (context) => CompleteLockeDialog(
-                                    lockeId: widget.lockeId,
-                                    lockeName: _locke!.name ?? "Partida sin nombre",
-                                    onSuccess: () {
-                                      _loadLockeDetails();
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('¡Nuzlocke completado con éxito!'),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                );
-                              },
-                              icon: const Icon(Icons.check_circle),
-                              label: const Text('Marcar como completada'),
-                            ),
-                          ],
-                        ),
-                      ),
                   ],
                 ),
               ),
+            if (userService.isAuthenticated &&
+                currentUserParticipant != null &&
+                currentUserParticipant
+                    .userId
+                    .isNotEmpty) // Added check for userId
+              const SizedBox(
+                height: 16,
+              ), // Spacing after "Tu Progreso" if it's shown
+            // Progress Summary Card
+            Card(
+              elevation: 1,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      'Progreso general',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      left: 16.0,
+                      right: 16.0,
+                      bottom: 16.0,
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Card(
+                            color: colorScheme.surfaceVariant.withOpacity(0.3),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    '${_locke!.participants?.length ?? 0}',
+                                    style: const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const Text('Participantes'),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Card(
+                            color: colorScheme.errorContainer.withOpacity(0.3),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    '$totalDeaths', // Uses totalDeaths parameter
+                                    style: const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const Text('Muertes totales'),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24), // Add some spacing at the end
+          ],
+        ),
+      ),
+    );
+  }
 
-              const SizedBox(height: 16),
+  Widget _buildProgressTab(
+    ColorScheme colorScheme,
+    UserService userService,
+    // int totalDeaths, // Removed totalDeaths
+    int maxKillsForChart,
+  ) {
+    return RefreshIndicator(
+      onRefresh: _handleRefresh,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Kills Chart
+            Card(
+              elevation: 1,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      'Muertes por participante',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                  ),
 
-              // Participants Deaths Chart
-              Card(
-                elevation: 1,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                  const SizedBox(height: 8),
+
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      _isUserAdmin()
+                          ? 'Como administrador, puedes editar las muertes de todos los participantes.'
+                          : 'Solo puedes editar tus propias muertes.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+
+                  if (_locke!.participants == null ||
+                      _locke!.participants!.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Text('No hay participantes en esta partida.'),
+                    )
+                  else
                     Padding(
                       padding: const EdgeInsets.all(16.0),
-                      child: Text(
-                        'Muertes por participante',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.primary,
-                        ),
-                      ),
-                    ),
+                      child: Column(
+                        children:
+                            _locke!.participants!.map((participant) {
+                              final isCurrentUser =
+                                  participant.userId ==
+                                  userService.currentUser?.id;
+                              final killsCount =
+                                  participant.deaths?.toInt() ?? 0;
+                              final canEdit = isCurrentUser || _isUserAdmin();
 
-                    // Legend
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 16,
-                                height: 16,
-                                decoration: BoxDecoration(
-                                  color: colorScheme.error,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              const Text('Otros participantes'),
-                            ],
-                          ),
-                          const SizedBox(width: 16),
-                          Row(
-                            children: [
-                              Container(
-                                width: 16,
-                                height: 16,
-                                decoration: BoxDecoration(
-                                  color: colorScheme.primary,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              const Text('Tú'),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
+                              // Calculate score based on deaths (100 - deaths*10)
+                              // final baseScore = 100; // This score is not used in this chart
+                              // final pointsPerDeath = 10; // This score is not used in this chart
+                              // final score = baseScore - (killsCount * pointsPerDeath); // This score is not used in this chart
 
-                    const SizedBox(height: 8),
+                              // maxKillsForChart is passed as a parameter
 
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Text(
-                        _isUserAdmin()
-                            ? 'Como administrador, puedes editar las muertes de todos los participantes.'
-                            : 'Solo puedes editar tus propias muertes.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-
-                    if (_locke!.participants == null ||
-                        _locke!.participants!.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.all(16.0),
-                        child: Text('No hay participantes en esta partida.'),
-                      )
-                    else
-                      Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          children:
-                              _locke!.participants!.map((participant) {
-                                final isCurrentUser =
-                                    participant.userId ==
-                                    userService.currentUser?.id;
-                                final deathCount =
-                                    participant.deaths?.toInt() ?? 0;
-                                final barWidth = (deathCount / maxDeaths) * 100;
-                                final canEdit = isCurrentUser || _isUserAdmin();
-
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 16.0),
-                                  child: Row(
-                                    children: [
-                                      // Participant name
-                                      SizedBox(
-                                        width: 90,
-                                        child: Text(
-                                          participant.name ?? 'User',
-                                          style: TextStyle(
-                                            fontWeight:
-                                                isCurrentUser
-                                                    ? FontWeight.bold
-                                                    : null,
-                                            color:
-                                                isCurrentUser
-                                                    ? colorScheme.primary
-                                                    : null,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 16.0),
+                                child: Row(
+                                  children: [
+                                    // Participant name
+                                    SizedBox(
+                                      width: 90,
+                                      child: Text(
+                                        participant.name ?? 'User',
+                                        style: TextStyle(
+                                          fontWeight:
+                                              isCurrentUser
+                                                  ? FontWeight.bold
+                                                  : null,
+                                          color:
+                                              isCurrentUser
+                                                  ? colorScheme.primary
+                                                  : null,
                                         ),
+                                        overflow: TextOverflow.ellipsis,
                                       ),
+                                    ),
 
-                                      // Bar chart
-                                      Expanded(
-                                        child: LayoutBuilder(
-                                          builder: (context, constraints) {
-                                            final maxAvailableWidth =
-                                                constraints.maxWidth;
-                                            // Calcula un ancho mínimo razonable para barras con 0 muertes
-                                            final minWidth = maxAvailableWidth *
-                                                0.1; // 10% del ancho disponible
+                                    // Kills bar chart
+                                    Expanded(
+                                      child: LayoutBuilder(
+                                        builder: (context, constraints) {
+                                          final maxAvailableWidth =
+                                              constraints.maxWidth;
+                                          final minWidth =
+                                              maxAvailableWidth * 0.1;
 
-                                            // Calcula el ancho proporcional, con un mínimo para barras con valor 0
-                                            final calculatedWidth = deathCount == 0
-                                                ? minWidth
-                                                : maxAvailableWidth *
-                                                    (deathCount / maxDeaths);
+                                          final calculatedWidth =
+                                              killsCount == 0
+                                                  ? minWidth
+                                                  : maxAvailableWidth *
+                                                      (killsCount /
+                                                          maxKillsForChart); // Use passed parameter
 
-                                            return Container(
-                                              height: 28,
-                                              decoration: BoxDecoration(
-                                                color: colorScheme.surfaceVariant
-                                                    .withOpacity(0.3),
-                                                borderRadius:
-                                                    BorderRadius.circular(14),
-                                              ),
-                                              child: Row(
-                                                children: [
-                                                  Container(
-                                                    width: calculatedWidth,
-                                                    height: 28,
-                                                    decoration: BoxDecoration(
-                                                      color: isCurrentUser
-                                                          ? colorScheme.primary
-                                                          : colorScheme.error,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              14),
-                                                    ),
-                                                    alignment:
-                                                        Alignment.centerLeft,
-                                                    padding:
-                                                        const EdgeInsets.only(
-                                                            left: 10),
-                                                    child: Text(
-                                                      '$deathCount',
-                                                      style: const TextStyle(
-                                                        color: Colors.white,
-                                                        fontWeight:
-                                                            FontWeight.bold,
+                                          return Container(
+                                            height: 28,
+                                            decoration: BoxDecoration(
+                                              color: colorScheme.surfaceVariant
+                                                  .withOpacity(0.3),
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                Container(
+                                                  width: calculatedWidth,
+                                                  height: 28,
+                                                  decoration: BoxDecoration(
+                                                    color:
+                                                        isCurrentUser
+                                                            ? colorScheme
+                                                                .primary // Standardized color
+                                                            : colorScheme
+                                                                .secondary, // Standardized color
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          14,
+                                                        ),
+                                                  ),
+                                                  alignment:
+                                                      Alignment.centerLeft,
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                        left: 10,
                                                       ),
+                                                  child: Text(
+                                                    '$killsCount',
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontWeight:
+                                                          FontWeight.bold,
                                                     ),
                                                   ),
-                                                ],
-                                              ),
-                                            );
-                                          },
-                                        ),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        },
                                       ),
-
-                                      // Edit button
-                                      if (canEdit)
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                            left: 8.0,
-                                          ),
-                                          child: IconButton(
-                                            icon: _loadingParticipantId == participant.userId
-                                                ? const SizedBox(
+                                    ),
+                                    // Edit button
+                                    if (canEdit)
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                          left: 8.0,
+                                        ),
+                                        child: IconButton(
+                                          icon:
+                                              _loadingParticipantId ==
+                                                      participant.userId
+                                                  ? const SizedBox(
                                                     width: 20,
                                                     height: 20,
-                                                    child: CircularProgressIndicator(
-                                                      strokeWidth: 2,
-                                                    ),
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                          strokeWidth: 2,
+                                                        ),
                                                   )
-                                                : const Icon(
+                                                  : const Icon(
                                                     Icons.edit,
                                                     size: 20,
                                                   ),
-                                            style: IconButton.styleFrom(
-                                              backgroundColor:
-                                                  colorScheme.primaryContainer,
-                                            ),
-                                            onPressed: _loadingParticipantId != null
-                                                ? null
-                                                : () {
-                                                    // Aquí está el cambio - mostrar el diálogo directamente
+                                          style: IconButton.styleFrom(
+                                            backgroundColor:
+                                                colorScheme.primaryContainer,
+                                          ),
+                                          onPressed:
+                                              _loadingParticipantId != null
+                                                  ? null
+                                                  : () {
                                                     showDialog(
                                                       context: context,
-                                                      builder: (context) => EditDeathsDialog(
-                                                        lockeId: widget.lockeId,
-                                                        participant: participant,
-                                                        onSuccess: _loadLockeDetails,
-                                                      ),
+                                                      builder:
+                                                          (
+                                                            context,
+                                                          ) => EditDeathsDialog(
+                                                            lockeId:
+                                                                widget.lockeId,
+                                                            participant:
+                                                                participant,
+                                                            onSuccess:
+                                                                _loadLockeDetails,
+                                                          ),
                                                     );
                                                   },
-                                          ),
                                         ),
-                                    ],
-                                  ),
-                                );
-                              }).toList(),
+                                      ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Points Chart (Victorias)
+            Card(
+              elevation: 1,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      'Victorias por participante', // Changed from "Puntos por participante"
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  if (_locke!.participants == null ||
+                      _locke!.participants!.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Text('No hay participantes en esta partida.'),
+                    )
+                  else
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        children:
+                            _locke!.participants!.map((participant) {
+                              final isCurrentUser =
+                                  participant.userId ==
+                                  userService.currentUser?.id;
+                              final pointsCount = // Using participant.points
+                                  participant.points?.toInt() ?? 0;
+
+                              // Calculate max points for chart scaling
+                              final maxPoints =
+                                  _locke!.participants?.fold<int>(
+                                    1, // Min 1 to avoid division by zero
+                                    (max, p) =>
+                                        (p.points?.toInt() ?? 0) > max
+                                            ? (p.points?.toInt() ?? 0)
+                                            : max,
+                                  ) ??
+                                  1;
+
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 16.0),
+                                child: Row(
+                                  children: [
+                                    // Participant name
+                                    SizedBox(
+                                      width: 90,
+                                      child: Text(
+                                        participant.name ?? 'User',
+                                        style: TextStyle(
+                                          fontWeight:
+                                              isCurrentUser
+                                                  ? FontWeight.bold
+                                                  : null,
+                                          color:
+                                              isCurrentUser
+                                                  ? colorScheme.primary
+                                                  : null,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+
+                                    // Points bar chart
+                                    Expanded(
+                                      child: LayoutBuilder(
+                                        builder: (context, constraints) {
+                                          final maxAvailableWidth =
+                                              constraints.maxWidth;
+                                          final minWidth =
+                                              maxAvailableWidth * 0.1;
+
+                                          final calculatedWidth =
+                                              pointsCount == 0
+                                                  ? minWidth
+                                                  : maxAvailableWidth *
+                                                      (pointsCount / maxPoints);
+
+                                          return Container(
+                                            height: 28,
+                                            decoration: BoxDecoration(
+                                              color: colorScheme.surfaceVariant
+                                                  .withOpacity(0.3),
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                Container(
+                                                  width: calculatedWidth,
+                                                  height: 28,
+                                                  decoration: BoxDecoration(
+                                                    color:
+                                                        isCurrentUser
+                                                            ? colorScheme
+                                                                .primary // Standardized color
+                                                            : colorScheme
+                                                                .secondary, // Standardized color
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          14,
+                                                        ),
+                                                  ),
+                                                  alignment:
+                                                      Alignment.centerLeft,
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                        left: 10,
+                                                      ),
+                                                  child: Text(
+                                                    '$pointsCount',
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16), // Spacing before the new chart
+            // Score Chart (Re-added)
+            Card(
+              elevation: 1,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      'Score por participante',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  if (_locke!.participants == null ||
+                      _locke!.participants!.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Text('No hay participantes en esta partida.'),
+                    )
+                  else
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        children:
+                            _locke!.participants!.map((participant) {
+                              final isCurrentUser =
+                                  participant.userId ==
+                                  userService.currentUser?.id;
+                              final scoreCount =
+                                  (participant.score * 100)
+                                      .toInt(); // Use score here
+
+                              final maxScore = _locke!.participants.fold<int>(
+                                1, // Min 1 to avoid division by zero
+                                (max, p) =>
+                                    (p.score * 100).toInt() > max
+                                        ? (p.score * 100).toInt()
+                                        : max,
+                              );
+
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 16.0),
+                                child: Row(
+                                  children: [
+                                    SizedBox(
+                                      width: 90,
+                                      child: Text(
+                                        participant.name ?? 'User',
+                                        style: TextStyle(
+                                          fontWeight:
+                                              isCurrentUser
+                                                  ? FontWeight.bold
+                                                  : null,
+                                          color:
+                                              isCurrentUser
+                                                  ? colorScheme.primary
+                                                  : null,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: LayoutBuilder(
+                                        builder: (context, constraints) {
+                                          final maxAvailableWidth =
+                                              constraints.maxWidth;
+                                          final minWidth =
+                                              maxAvailableWidth * 0.1;
+                                          final calculatedWidth =
+                                              scoreCount == 0
+                                                  ? minWidth
+                                                  : maxAvailableWidth *
+                                                      (scoreCount / maxScore);
+
+                                          return Container(
+                                            height: 28,
+                                            decoration: BoxDecoration(
+                                              color: colorScheme.surfaceVariant
+                                                  .withOpacity(0.3),
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                Container(
+                                                  width: calculatedWidth,
+                                                  height: 28,
+                                                  decoration: BoxDecoration(
+                                                    color:
+                                                        isCurrentUser
+                                                            ? colorScheme
+                                                                .primary // Standardized color
+                                                            : colorScheme
+                                                                .secondary, // Standardized color
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          14,
+                                                        ),
+                                                  ),
+                                                  alignment:
+                                                      Alignment.centerLeft,
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                        left: 10,
+                                                      ),
+                                                  child: Text(
+                                                    '$scoreCount',
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBattlesTab() {
+    if (_locke == null) {
+      return const Center(
+        child: Text('No se ha cargado la información de la partida'),
+      );
+    }
+
+    return BattlesTab(
+      lockeId: widget.lockeId,
+      participants: _locke!.participants!,
+      isAdmin: _isUserAdmin(), // Pass the admin status
+    );
+  }
+
+  Widget _buildUserManagementTab(
+    ColorScheme colorScheme,
+    UserService userService,
+  ) {
+    final isAdmin = _isUserAdmin();
+
+    return RefreshIndicator(
+      onRefresh: _handleRefresh,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Card(
+              elevation: 1,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Participantes',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.primary,
+                          ),
                         ),
+                        if (isAdmin)
+                          FilledButton.icon(
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder:
+                                    (context) => AddParticipantDialog(
+                                      lockeId: widget.lockeId,
+                                      onSuccess: _loadLockeDetails,
+                                    ),
+                              );
+                            },
+                            icon: const Icon(Icons.person_add),
+                            label: const Text('Añadir'),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      isAdmin
+                          ? 'Como administrador, puedes gestionar los participantes y sus permisos.'
+                          : 'Participantes en esta partida:',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    if (_locke!.participants == null ||
+                        _locke!.participants!.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16.0),
+                        child: Center(
+                          child: Text('No hay participantes en esta partida'),
+                        ),
+                      )
+                    else
+                      ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _locke!.participants!.length,
+                        separatorBuilder: (_, __) => const Divider(),
+                        itemBuilder: (context, index) {
+                          final participant = _locke!.participants![index];
+                          final isCurrentUser =
+                              participant.userId == userService.currentUser?.id;
+                          final isParticipantAdmin = _locke!.adminIds.contains(
+                            participant.userId,
+                          );
+
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor:
+                                  isCurrentUser
+                                      ? colorScheme.primaryContainer
+                                      : colorScheme.surfaceVariant,
+                              child: Text(
+                                participant.name.isNotEmpty
+                                    ? participant.name[0].toUpperCase()
+                                    : '?',
+                                style: TextStyle(
+                                  color:
+                                      isCurrentUser
+                                          ? colorScheme.onPrimaryContainer
+                                          : colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                            title: Row(
+                              children: [
+                                Text(
+                                  participant.name,
+                                  style: TextStyle(
+                                    fontWeight:
+                                        isCurrentUser ? FontWeight.bold : null,
+                                  ),
+                                ),
+                                if (isParticipantAdmin)
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 8.0),
+                                    child: Tooltip(
+                                      message: 'Administrador',
+                                      child: Icon(
+                                        Icons.admin_panel_settings,
+                                        size: 16,
+                                        color: colorScheme.primary,
+                                      ),
+                                    ),
+                                  ),
+                                if (isCurrentUser)
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 8.0),
+                                    child: Tooltip(
+                                      message: 'Tú',
+                                      child: Icon(
+                                        Icons.person,
+                                        size: 16,
+                                        color: colorScheme.primary,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            subtitle: Text(
+                              '@${participant.username} • ${participant.deaths?.toInt() ?? 0} muertes',
+                            ),
+                            trailing:
+                                isAdmin && !isCurrentUser
+                                    ? Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        // Toggle admin status
+                                        IconButton(
+                                          icon:
+                                              _loadingAdminId ==
+                                                      participant.userId
+                                                  ? const SizedBox(
+                                                    width: 20,
+                                                    height: 20,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                          strokeWidth: 2,
+                                                        ),
+                                                  )
+                                                  : Icon(
+                                                    isParticipantAdmin
+                                                        ? Icons
+                                                            .admin_panel_settings
+                                                        : Icons
+                                                            .admin_panel_settings_outlined,
+                                                  ),
+                                          tooltip:
+                                              isParticipantAdmin
+                                                  ? 'Quitar permisos de administrador'
+                                                  : 'Hacer administrador',
+                                          onPressed:
+                                              _loadingAdminId != null
+                                                  ? null
+                                                  : () => _toggleAdminStatus(
+                                                    participant.userId!,
+                                                    !isParticipantAdmin,
+                                                  ),
+                                        ),
+
+                                        // Remove user
+                                        IconButton(
+                                          icon:
+                                              _removingUserId ==
+                                                      participant.userId
+                                                  ? const SizedBox(
+                                                    width: 20,
+                                                    height: 20,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                          strokeWidth: 2,
+                                                        ),
+                                                  )
+                                                  : Icon(
+                                                    Icons.person_remove,
+                                                    color: colorScheme.error,
+                                                  ),
+                                          tooltip: 'Eliminar participante',
+                                          onPressed:
+                                              _removingUserId != null
+                                                  ? null
+                                                  : () => _removeParticipant(
+                                                    participant.userId!,
+                                                  ),
+                                        ),
+                                      ],
+                                    )
+                                    : null,
+                          );
+                        },
                       ),
                   ],
                 ),
               ),
-
-              const SizedBox(height: 24),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
-
-      // Edit deaths dialog
-      floatingActionButton:
-          _isUserAdmin()
-              ? FloatingActionButton(
-                heroTag: 'add_participant',
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => AddParticipantDialog(
-                      lockeId: widget.lockeId,
-                      onSuccess: _loadLockeDetails,
-                    ),
-                  );
-                },
-                tooltip: 'Añadir participante',
-                child: const Icon(Icons.person_add),
-              )
-              : null,
     );
-
-    // Return the builder with the dialog
   }
 
   Widget _buildEditDeathsDialog() {

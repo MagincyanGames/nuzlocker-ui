@@ -1,6 +1,54 @@
 import 'package:json_annotation/json_annotation.dart';
 import 'package:collection/collection.dart';
 
+enum CreateBattleDtoStatus {
+  @JsonValue(null)
+  swaggerGeneratedUnknown(null),
+
+  @JsonValue('scheduled')
+  scheduled('scheduled'),
+  @JsonValue('completed')
+  completed('completed'),
+  @JsonValue('canceled')
+  canceled('canceled');
+
+  final String? value;
+
+  const CreateBattleDtoStatus(this.value);
+}
+
+enum EnrichedBattleResponseDtoStatus {
+  @JsonValue(null)
+  swaggerGeneratedUnknown(null),
+
+  @JsonValue('scheduled')
+  scheduled('scheduled'),
+  @JsonValue('completed')
+  completed('completed'),
+  @JsonValue('canceled')
+  canceled('canceled');
+
+  final String? value;
+
+  const EnrichedBattleResponseDtoStatus(this.value);
+}
+
+enum UpdateBattleDtoStatus {
+  @JsonValue(null)
+  swaggerGeneratedUnknown(null),
+
+  @JsonValue('scheduled')
+  scheduled('scheduled'),
+  @JsonValue('completed')
+  completed('completed'),
+  @JsonValue('canceled')
+  canceled('canceled');
+
+  final String? value;
+
+  const UpdateBattleDtoStatus(this.value);
+}
+
 enum ApiLockesGetActive {
   @JsonValue(null)
   swaggerGeneratedUnknown(null),

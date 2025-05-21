@@ -54,9 +54,7 @@ class _LockesScreenState extends State<LockesScreen> {
       } else {
         // Implement when you have an API endpoint for all lockes
         // For now, just use getMyLockes as placeholder
-        fetchedLockes = await _apiService.getMyLockes(
-          includeParticipating: true,
-        );
+        fetchedLockes = await _apiService.getAllLockes();
         // TODO: Replace with actual "get all lockes" endpoint when available
       }
 

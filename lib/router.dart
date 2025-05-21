@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:nuzlocker_ui/screens/locke_details_screen.dart';
 import 'package:nuzlocker_ui/screens/lockes_screen.dart';
 import 'package:nuzlocker_ui/screens/new_locke_screen.dart';
+import 'package:nuzlocker_ui/screens/signup_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 
@@ -12,13 +13,13 @@ final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 final GoRouter router = GoRouter(
   // Use navigator key to enable pop operations
   navigatorKey: _rootNavigatorKey,
-  
+
   // Enable debug logging
   debugLogDiagnostics: true,
-  
+
   // Define initial route
   initialLocation: '/',
-  
+
   // Use a flat route structure instead of nested routes
   routes: [
     // Home route
@@ -27,7 +28,7 @@ final GoRouter router = GoRouter(
       name: 'home',
       builder: (context, state) => const HomeScreen(),
     ),
-    
+
     // Authentication routes
     GoRoute(
       path: '/login',
@@ -36,7 +37,7 @@ final GoRouter router = GoRouter(
       // Use parentNavigatorKey to ensure this is built at the root level
       parentNavigatorKey: _rootNavigatorKey,
     ),
-    
+
     // Lockes list route
     GoRoute(
       path: '/lockes',
@@ -44,7 +45,7 @@ final GoRouter router = GoRouter(
       builder: (context, state) => const LockesScreen(),
       parentNavigatorKey: _rootNavigatorKey,
     ),
-    
+
     // New locke route
     GoRoute(
       path: '/lockes/new',
@@ -52,7 +53,7 @@ final GoRouter router = GoRouter(
       builder: (context, state) => const NewLockeScreen(),
       parentNavigatorKey: _rootNavigatorKey,
     ),
-    
+
     // Locke details with parameter
     GoRoute(
       path: '/locke/:id',
@@ -63,23 +64,30 @@ final GoRouter router = GoRouter(
       },
       parentNavigatorKey: _rootNavigatorKey,
     ),
-  ],
-  
-  // Error page
-  errorBuilder: (context, state) => Scaffold(
-    appBar: AppBar(title: const Text('Page Not Found')),
-    body: Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text('Route not found', style: TextStyle(fontSize: 24)),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: () => context.push('/'),
-            child: const Text('Go to Home'),
-          ),
-        ],
-      ),
+    GoRoute(
+      path: '/signup', // Added route for sign-up
+      builder: (BuildContext context, GoRouterState state) {
+        return const SignUpScreen();
+      },
     ),
-  ),
+  ],
+
+  // Error page
+  errorBuilder:
+      (context, state) => Scaffold(
+        appBar: AppBar(title: const Text('Page Not Found')),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('Route not found', style: TextStyle(fontSize: 24)),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => context.push('/'),
+                child: const Text('Go to Home'),
+              ),
+            ],
+          ),
+        ),
+      ),
 );
