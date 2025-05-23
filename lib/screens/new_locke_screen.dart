@@ -182,7 +182,9 @@ class _NewLockeScreenState extends State<NewLockeScreen> {
                     const SizedBox(height: 8),
                     Center(
                       child: TextButton(
-                        onPressed: () => context.push('/lockes'),
+                        onPressed: () => {
+                          context.pop(),
+                        },
                         child: const Text('Cancel'),
                       ),
                     ),

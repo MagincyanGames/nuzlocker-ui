@@ -92,7 +92,24 @@ abstract class Api extends ChopperService {
   Future<chopper.Response<UserStatsResponseDto>> _apiUsersUserIdStatsGet(
       {@Path('userId') required String? userId});
 
-  ///Iniciar sesión de usuario
+  ///Register a new user
+  Future<chopper.Response<RegisterResponseDto>> apiAuthRegisterPost(
+      {required RegisterDto? body}) {
+    generatedMapping.putIfAbsent(
+        RegisterResponseDto, () => RegisterResponseDto.fromJsonFactory);
+
+    return _apiAuthRegisterPost(body: body);
+  }
+
+  ///Register a new user
+  @Post(
+    path: '/api/auth/register',
+    optionalBody: true,
+  )
+  Future<chopper.Response<RegisterResponseDto>> _apiAuthRegisterPost(
+      {@Body() required RegisterDto? body});
+
+  ///Login with username and password
   Future<chopper.Response<LoginResponseDto>> apiAuthLoginPost(
       {required LoginDto? body}) {
     generatedMapping.putIfAbsent(
@@ -101,7 +118,7 @@ abstract class Api extends ChopperService {
     return _apiAuthLoginPost(body: body);
   }
 
-  ///Iniciar sesión de usuario
+  ///Login with username and password
   @Post(
     path: '/api/auth/login',
     optionalBody: true,
@@ -109,39 +126,17 @@ abstract class Api extends ChopperService {
   Future<chopper.Response<LoginResponseDto>> _apiAuthLoginPost(
       {@Body() required LoginDto? body});
 
-  ///Validar token JWT
-  Future<chopper.Response<ValidateTokenResponseDto>> apiAuthValidatePost(
-      {required ValidateTokenDto? body}) {
-    generatedMapping.putIfAbsent(ValidateTokenResponseDto,
-        () => ValidateTokenResponseDto.fromJsonFactory);
-
-    return _apiAuthValidatePost(body: body);
-  }
-
-  ///Validar token JWT
-  @Post(
-    path: '/api/auth/validate',
-    optionalBody: true,
-  )
-  Future<chopper.Response<ValidateTokenResponseDto>> _apiAuthValidatePost(
-      {@Body() required ValidateTokenDto? body});
-
-  ///Registrar nuevo usuario
-  Future<chopper.Response<RegisterResponseDto>> apiAuthRegisterPost(
-      {required LoginDto? body}) {
+  ///Validate JWT token and get user info
+  Future<chopper.Response<ValidateResponseDto>> apiAuthValidateGet() {
     generatedMapping.putIfAbsent(
-        RegisterResponseDto, () => RegisterResponseDto.fromJsonFactory);
+        ValidateResponseDto, () => ValidateResponseDto.fromJsonFactory);
 
-    return _apiAuthRegisterPost(body: body);
+    return _apiAuthValidateGet();
   }
 
-  ///Registrar nuevo usuario
-  @Post(
-    path: '/api/auth/register',
-    optionalBody: true,
-  )
-  Future<chopper.Response<RegisterResponseDto>> _apiAuthRegisterPost(
-      {@Body() required LoginDto? body});
+  ///Validate JWT token and get user info
+  @Get(path: '/api/auth/validate')
+  Future<chopper.Response<ValidateResponseDto>> _apiAuthValidateGet();
 
   ///Crear un nuevo locke
   Future<chopper.Response<EnrichedLockeResponseDto>> apiLockesPost(
@@ -446,6 +441,46 @@ abstract class Api extends ChopperService {
     @Query('includeParticipating') String? includeParticipating,
     @Query('active') String? active,
   });
+
+  ///Get statistics for the authenticated user
+  Future<chopper.Response<UserStatisticsDto>> apiStatisticsMeGet() {
+    generatedMapping.putIfAbsent(
+        UserStatisticsDto, () => UserStatisticsDto.fromJsonFactory);
+
+    return _apiStatisticsMeGet();
+  }
+
+  ///Get statistics for the authenticated user
+  @Get(path: '/api/statistics/me')
+  Future<chopper.Response<UserStatisticsDto>> _apiStatisticsMeGet();
+
+  ///Get statistics for a specific user
+  ///@param userId The ID of the user to get statistics for
+  Future<chopper.Response<UserStatisticsDto>> apiStatisticsUserUserIdGet(
+      {required String? userId}) {
+    generatedMapping.putIfAbsent(
+        UserStatisticsDto, () => UserStatisticsDto.fromJsonFactory);
+
+    return _apiStatisticsUserUserIdGet(userId: userId);
+  }
+
+  ///Get statistics for a specific user
+  ///@param userId The ID of the user to get statistics for
+  @Get(path: '/api/statistics/user/{userId}')
+  Future<chopper.Response<UserStatisticsDto>> _apiStatisticsUserUserIdGet(
+      {@Path('userId') required String? userId});
+
+  ///Get rankings of all users based on their statistics
+  Future<chopper.Response<List<UserStatisticsDto>>> apiStatisticsRankingsGet() {
+    generatedMapping.putIfAbsent(
+        UserStatisticsDto, () => UserStatisticsDto.fromJsonFactory);
+
+    return _apiStatisticsRankingsGet();
+  }
+
+  ///Get rankings of all users based on their statistics
+  @Get(path: '/api/statistics/rankings')
+  Future<chopper.Response<List<UserStatisticsDto>>> _apiStatisticsRankingsGet();
 }
 
 @JsonSerializable(explicitToJson: true)
@@ -618,6 +653,278 @@ extension $UserStatsResponseDtoExtension on UserStatsResponseDto {
 }
 
 @JsonSerializable(explicitToJson: true)
+class RegisterDto {
+  const RegisterDto({
+    required this.name,
+    required this.username,
+    required this.password,
+  });
+
+  factory RegisterDto.fromJson(Map<String, dynamic> json) =>
+      _$RegisterDtoFromJson(json);
+
+  static const toJsonFactory = _$RegisterDtoToJson;
+  Map<String, dynamic> toJson() => _$RegisterDtoToJson(this);
+
+  @JsonKey(name: 'name', defaultValue: 'default')
+  final String name;
+  @JsonKey(name: 'username', defaultValue: 'default')
+  final String username;
+  @JsonKey(name: 'password', defaultValue: 'default')
+  final String password;
+  static const fromJsonFactory = _$RegisterDtoFromJson;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other is RegisterDto &&
+            (identical(other.name, name) ||
+                const DeepCollectionEquality().equals(other.name, name)) &&
+            (identical(other.username, username) ||
+                const DeepCollectionEquality()
+                    .equals(other.username, username)) &&
+            (identical(other.password, password) ||
+                const DeepCollectionEquality()
+                    .equals(other.password, password)));
+  }
+
+  @override
+  String toString() => jsonEncode(this);
+
+  @override
+  int get hashCode =>
+      const DeepCollectionEquality().hash(name) ^
+      const DeepCollectionEquality().hash(username) ^
+      const DeepCollectionEquality().hash(password) ^
+      runtimeType.hashCode;
+}
+
+extension $RegisterDtoExtension on RegisterDto {
+  RegisterDto copyWith({String? name, String? username, String? password}) {
+    return RegisterDto(
+        name: name ?? this.name,
+        username: username ?? this.username,
+        password: password ?? this.password);
+  }
+
+  RegisterDto copyWithWrapped(
+      {Wrapped<String>? name,
+      Wrapped<String>? username,
+      Wrapped<String>? password}) {
+    return RegisterDto(
+        name: (name != null ? name.value : this.name),
+        username: (username != null ? username.value : this.username),
+        password: (password != null ? password.value : this.password));
+  }
+}
+
+@JsonSerializable(explicitToJson: true)
+class UserInfoDto {
+  const UserInfoDto({
+    required this.name,
+    required this.username,
+  });
+
+  factory UserInfoDto.fromJson(Map<String, dynamic> json) =>
+      _$UserInfoDtoFromJson(json);
+
+  static const toJsonFactory = _$UserInfoDtoToJson;
+  Map<String, dynamic> toJson() => _$UserInfoDtoToJson(this);
+
+  @JsonKey(name: 'name', defaultValue: 'default')
+  final String name;
+  @JsonKey(name: 'username', defaultValue: 'default')
+  final String username;
+  static const fromJsonFactory = _$UserInfoDtoFromJson;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other is UserInfoDto &&
+            (identical(other.name, name) ||
+                const DeepCollectionEquality().equals(other.name, name)) &&
+            (identical(other.username, username) ||
+                const DeepCollectionEquality()
+                    .equals(other.username, username)));
+  }
+
+  @override
+  String toString() => jsonEncode(this);
+
+  @override
+  int get hashCode =>
+      const DeepCollectionEquality().hash(name) ^
+      const DeepCollectionEquality().hash(username) ^
+      runtimeType.hashCode;
+}
+
+extension $UserInfoDtoExtension on UserInfoDto {
+  UserInfoDto copyWith({String? name, String? username}) {
+    return UserInfoDto(
+        name: name ?? this.name, username: username ?? this.username);
+  }
+
+  UserInfoDto copyWithWrapped(
+      {Wrapped<String>? name, Wrapped<String>? username}) {
+    return UserInfoDto(
+        name: (name != null ? name.value : this.name),
+        username: (username != null ? username.value : this.username));
+  }
+}
+
+@JsonSerializable(explicitToJson: true)
+class RegisterResponseDto {
+  const RegisterResponseDto({
+    required this.user,
+    required this.id,
+    required this.accessToken,
+    required this.success,
+  });
+
+  factory RegisterResponseDto.fromJson(Map<String, dynamic> json) =>
+      _$RegisterResponseDtoFromJson(json);
+
+  static const toJsonFactory = _$RegisterResponseDtoToJson;
+  Map<String, dynamic> toJson() => _$RegisterResponseDtoToJson(this);
+
+  @JsonKey(name: 'user')
+  final UserInfoDto user;
+  @JsonKey(name: 'id', defaultValue: 'default')
+  final String id;
+  @JsonKey(name: 'access_token', defaultValue: 'default')
+  final String accessToken;
+  @JsonKey(name: 'success')
+  final bool success;
+  static const fromJsonFactory = _$RegisterResponseDtoFromJson;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other is RegisterResponseDto &&
+            (identical(other.user, user) ||
+                const DeepCollectionEquality().equals(other.user, user)) &&
+            (identical(other.id, id) ||
+                const DeepCollectionEquality().equals(other.id, id)) &&
+            (identical(other.accessToken, accessToken) ||
+                const DeepCollectionEquality()
+                    .equals(other.accessToken, accessToken)) &&
+            (identical(other.success, success) ||
+                const DeepCollectionEquality().equals(other.success, success)));
+  }
+
+  @override
+  String toString() => jsonEncode(this);
+
+  @override
+  int get hashCode =>
+      const DeepCollectionEquality().hash(user) ^
+      const DeepCollectionEquality().hash(id) ^
+      const DeepCollectionEquality().hash(accessToken) ^
+      const DeepCollectionEquality().hash(success) ^
+      runtimeType.hashCode;
+}
+
+extension $RegisterResponseDtoExtension on RegisterResponseDto {
+  RegisterResponseDto copyWith(
+      {UserInfoDto? user, String? id, String? accessToken, bool? success}) {
+    return RegisterResponseDto(
+        user: user ?? this.user,
+        id: id ?? this.id,
+        accessToken: accessToken ?? this.accessToken,
+        success: success ?? this.success);
+  }
+
+  RegisterResponseDto copyWithWrapped(
+      {Wrapped<UserInfoDto>? user,
+      Wrapped<String>? id,
+      Wrapped<String>? accessToken,
+      Wrapped<bool>? success}) {
+    return RegisterResponseDto(
+        user: (user != null ? user.value : this.user),
+        id: (id != null ? id.value : this.id),
+        accessToken:
+            (accessToken != null ? accessToken.value : this.accessToken),
+        success: (success != null ? success.value : this.success));
+  }
+}
+
+@JsonSerializable(explicitToJson: true)
+class ErrorResponseDto {
+  const ErrorResponseDto({
+    required this.statusCode,
+    required this.message,
+    required this.error,
+    required this.success,
+  });
+
+  factory ErrorResponseDto.fromJson(Map<String, dynamic> json) =>
+      _$ErrorResponseDtoFromJson(json);
+
+  static const toJsonFactory = _$ErrorResponseDtoToJson;
+  Map<String, dynamic> toJson() => _$ErrorResponseDtoToJson(this);
+
+  @JsonKey(name: 'statusCode')
+  final double statusCode;
+  @JsonKey(name: 'message')
+  final dynamic message;
+  @JsonKey(name: 'error', defaultValue: 'default')
+  final String error;
+  @JsonKey(name: 'success')
+  final bool success;
+  static const fromJsonFactory = _$ErrorResponseDtoFromJson;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other is ErrorResponseDto &&
+            (identical(other.statusCode, statusCode) ||
+                const DeepCollectionEquality()
+                    .equals(other.statusCode, statusCode)) &&
+            (identical(other.message, message) ||
+                const DeepCollectionEquality()
+                    .equals(other.message, message)) &&
+            (identical(other.error, error) ||
+                const DeepCollectionEquality().equals(other.error, error)) &&
+            (identical(other.success, success) ||
+                const DeepCollectionEquality().equals(other.success, success)));
+  }
+
+  @override
+  String toString() => jsonEncode(this);
+
+  @override
+  int get hashCode =>
+      const DeepCollectionEquality().hash(statusCode) ^
+      const DeepCollectionEquality().hash(message) ^
+      const DeepCollectionEquality().hash(error) ^
+      const DeepCollectionEquality().hash(success) ^
+      runtimeType.hashCode;
+}
+
+extension $ErrorResponseDtoExtension on ErrorResponseDto {
+  ErrorResponseDto copyWith(
+      {double? statusCode, dynamic message, String? error, bool? success}) {
+    return ErrorResponseDto(
+        statusCode: statusCode ?? this.statusCode,
+        message: message ?? this.message,
+        error: error ?? this.error,
+        success: success ?? this.success);
+  }
+
+  ErrorResponseDto copyWithWrapped(
+      {Wrapped<double>? statusCode,
+      Wrapped<dynamic>? message,
+      Wrapped<String>? error,
+      Wrapped<bool>? success}) {
+    return ErrorResponseDto(
+        statusCode: (statusCode != null ? statusCode.value : this.statusCode),
+        message: (message != null ? message.value : this.message),
+        error: (error != null ? error.value : this.error),
+        success: (success != null ? success.value : this.success));
+  }
+}
+
+@JsonSerializable(explicitToJson: true)
 class LoginDto {
   const LoginDto({
     required this.username,
@@ -676,6 +983,7 @@ extension $LoginDtoExtension on LoginDto {
 @JsonSerializable(explicitToJson: true)
 class LoginResponseDto {
   const LoginResponseDto({
+    required this.user,
     required this.id,
     required this.accessToken,
     required this.success,
@@ -687,6 +995,8 @@ class LoginResponseDto {
   static const toJsonFactory = _$LoginResponseDtoToJson;
   Map<String, dynamic> toJson() => _$LoginResponseDtoToJson(this);
 
+  @JsonKey(name: 'user')
+  final UserInfoDto user;
   @JsonKey(name: 'id', defaultValue: 'default')
   final String id;
   @JsonKey(name: 'access_token', defaultValue: 'default')
@@ -699,6 +1009,8 @@ class LoginResponseDto {
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other is LoginResponseDto &&
+            (identical(other.user, user) ||
+                const DeepCollectionEquality().equals(other.user, user)) &&
             (identical(other.id, id) ||
                 const DeepCollectionEquality().equals(other.id, id)) &&
             (identical(other.accessToken, accessToken) ||
@@ -713,6 +1025,7 @@ class LoginResponseDto {
 
   @override
   int get hashCode =>
+      const DeepCollectionEquality().hash(user) ^
       const DeepCollectionEquality().hash(id) ^
       const DeepCollectionEquality().hash(accessToken) ^
       const DeepCollectionEquality().hash(success) ^
@@ -720,18 +1033,22 @@ class LoginResponseDto {
 }
 
 extension $LoginResponseDtoExtension on LoginResponseDto {
-  LoginResponseDto copyWith({String? id, String? accessToken, bool? success}) {
+  LoginResponseDto copyWith(
+      {UserInfoDto? user, String? id, String? accessToken, bool? success}) {
     return LoginResponseDto(
+        user: user ?? this.user,
         id: id ?? this.id,
         accessToken: accessToken ?? this.accessToken,
         success: success ?? this.success);
   }
 
   LoginResponseDto copyWithWrapped(
-      {Wrapped<String>? id,
+      {Wrapped<UserInfoDto>? user,
+      Wrapped<String>? id,
       Wrapped<String>? accessToken,
       Wrapped<bool>? success}) {
     return LoginResponseDto(
+        user: (user != null ? user.value : this.user),
         id: (id != null ? id.value : this.id),
         accessToken:
             (accessToken != null ? accessToken.value : this.accessToken),
@@ -740,187 +1057,43 @@ extension $LoginResponseDtoExtension on LoginResponseDto {
 }
 
 @JsonSerializable(explicitToJson: true)
-class ErrorResponseDto {
-  const ErrorResponseDto({
-    required this.success,
-    required this.message,
-  });
-
-  factory ErrorResponseDto.fromJson(Map<String, dynamic> json) =>
-      _$ErrorResponseDtoFromJson(json);
-
-  static const toJsonFactory = _$ErrorResponseDtoToJson;
-  Map<String, dynamic> toJson() => _$ErrorResponseDtoToJson(this);
-
-  @JsonKey(name: 'success')
-  final bool success;
-  @JsonKey(name: 'message', defaultValue: 'default')
-  final String message;
-  static const fromJsonFactory = _$ErrorResponseDtoFromJson;
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other is ErrorResponseDto &&
-            (identical(other.success, success) ||
-                const DeepCollectionEquality()
-                    .equals(other.success, success)) &&
-            (identical(other.message, message) ||
-                const DeepCollectionEquality().equals(other.message, message)));
-  }
-
-  @override
-  String toString() => jsonEncode(this);
-
-  @override
-  int get hashCode =>
-      const DeepCollectionEquality().hash(success) ^
-      const DeepCollectionEquality().hash(message) ^
-      runtimeType.hashCode;
-}
-
-extension $ErrorResponseDtoExtension on ErrorResponseDto {
-  ErrorResponseDto copyWith({bool? success, String? message}) {
-    return ErrorResponseDto(
-        success: success ?? this.success, message: message ?? this.message);
-  }
-
-  ErrorResponseDto copyWithWrapped(
-      {Wrapped<bool>? success, Wrapped<String>? message}) {
-    return ErrorResponseDto(
-        success: (success != null ? success.value : this.success),
-        message: (message != null ? message.value : this.message));
-  }
-}
-
-@JsonSerializable(explicitToJson: true)
-class ValidateTokenDto {
-  const ValidateTokenDto({
-    required this.token,
-  });
-
-  factory ValidateTokenDto.fromJson(Map<String, dynamic> json) =>
-      _$ValidateTokenDtoFromJson(json);
-
-  static const toJsonFactory = _$ValidateTokenDtoToJson;
-  Map<String, dynamic> toJson() => _$ValidateTokenDtoToJson(this);
-
-  @JsonKey(name: 'token', defaultValue: 'default')
-  final String token;
-  static const fromJsonFactory = _$ValidateTokenDtoFromJson;
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other is ValidateTokenDto &&
-            (identical(other.token, token) ||
-                const DeepCollectionEquality().equals(other.token, token)));
-  }
-
-  @override
-  String toString() => jsonEncode(this);
-
-  @override
-  int get hashCode =>
-      const DeepCollectionEquality().hash(token) ^ runtimeType.hashCode;
-}
-
-extension $ValidateTokenDtoExtension on ValidateTokenDto {
-  ValidateTokenDto copyWith({String? token}) {
-    return ValidateTokenDto(token: token ?? this.token);
-  }
-
-  ValidateTokenDto copyWithWrapped({Wrapped<String>? token}) {
-    return ValidateTokenDto(token: (token != null ? token.value : this.token));
-  }
-}
-
-@JsonSerializable(explicitToJson: true)
-class ValidateTokenResponseDto {
-  const ValidateTokenResponseDto({
-    required this.valid,
-    this.id,
-  });
-
-  factory ValidateTokenResponseDto.fromJson(Map<String, dynamic> json) =>
-      _$ValidateTokenResponseDtoFromJson(json);
-
-  static const toJsonFactory = _$ValidateTokenResponseDtoToJson;
-  Map<String, dynamic> toJson() => _$ValidateTokenResponseDtoToJson(this);
-
-  @JsonKey(name: 'valid')
-  final bool valid;
-  @JsonKey(name: 'id', defaultValue: 'default')
-  final String? id;
-  static const fromJsonFactory = _$ValidateTokenResponseDtoFromJson;
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other is ValidateTokenResponseDto &&
-            (identical(other.valid, valid) ||
-                const DeepCollectionEquality().equals(other.valid, valid)) &&
-            (identical(other.id, id) ||
-                const DeepCollectionEquality().equals(other.id, id)));
-  }
-
-  @override
-  String toString() => jsonEncode(this);
-
-  @override
-  int get hashCode =>
-      const DeepCollectionEquality().hash(valid) ^
-      const DeepCollectionEquality().hash(id) ^
-      runtimeType.hashCode;
-}
-
-extension $ValidateTokenResponseDtoExtension on ValidateTokenResponseDto {
-  ValidateTokenResponseDto copyWith({bool? valid, String? id}) {
-    return ValidateTokenResponseDto(
-        valid: valid ?? this.valid, id: id ?? this.id);
-  }
-
-  ValidateTokenResponseDto copyWithWrapped(
-      {Wrapped<bool>? valid, Wrapped<String?>? id}) {
-    return ValidateTokenResponseDto(
-        valid: (valid != null ? valid.value : this.valid),
-        id: (id != null ? id.value : this.id));
-  }
-}
-
-@JsonSerializable(explicitToJson: true)
-class RegisterResponseDto {
-  const RegisterResponseDto({
+class ValidateResponseDto {
+  const ValidateResponseDto({
+    required this.user,
     required this.id,
-    required this.username,
-    this.name,
+    required this.accessToken,
+    required this.success,
   });
 
-  factory RegisterResponseDto.fromJson(Map<String, dynamic> json) =>
-      _$RegisterResponseDtoFromJson(json);
+  factory ValidateResponseDto.fromJson(Map<String, dynamic> json) =>
+      _$ValidateResponseDtoFromJson(json);
 
-  static const toJsonFactory = _$RegisterResponseDtoToJson;
-  Map<String, dynamic> toJson() => _$RegisterResponseDtoToJson(this);
+  static const toJsonFactory = _$ValidateResponseDtoToJson;
+  Map<String, dynamic> toJson() => _$ValidateResponseDtoToJson(this);
 
+  @JsonKey(name: 'user')
+  final UserInfoDto user;
   @JsonKey(name: 'id', defaultValue: 'default')
   final String id;
-  @JsonKey(name: 'username', defaultValue: 'default')
-  final String username;
-  @JsonKey(name: 'name', defaultValue: 'default')
-  final String? name;
-  static const fromJsonFactory = _$RegisterResponseDtoFromJson;
+  @JsonKey(name: 'access_token', defaultValue: 'default')
+  final String accessToken;
+  @JsonKey(name: 'success')
+  final bool success;
+  static const fromJsonFactory = _$ValidateResponseDtoFromJson;
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        (other is RegisterResponseDto &&
+        (other is ValidateResponseDto &&
+            (identical(other.user, user) ||
+                const DeepCollectionEquality().equals(other.user, user)) &&
             (identical(other.id, id) ||
                 const DeepCollectionEquality().equals(other.id, id)) &&
-            (identical(other.username, username) ||
+            (identical(other.accessToken, accessToken) ||
                 const DeepCollectionEquality()
-                    .equals(other.username, username)) &&
-            (identical(other.name, name) ||
-                const DeepCollectionEquality().equals(other.name, name)));
+                    .equals(other.accessToken, accessToken)) &&
+            (identical(other.success, success) ||
+                const DeepCollectionEquality().equals(other.success, success)));
   }
 
   @override
@@ -928,28 +1101,34 @@ class RegisterResponseDto {
 
   @override
   int get hashCode =>
+      const DeepCollectionEquality().hash(user) ^
       const DeepCollectionEquality().hash(id) ^
-      const DeepCollectionEquality().hash(username) ^
-      const DeepCollectionEquality().hash(name) ^
+      const DeepCollectionEquality().hash(accessToken) ^
+      const DeepCollectionEquality().hash(success) ^
       runtimeType.hashCode;
 }
 
-extension $RegisterResponseDtoExtension on RegisterResponseDto {
-  RegisterResponseDto copyWith({String? id, String? username, String? name}) {
-    return RegisterResponseDto(
+extension $ValidateResponseDtoExtension on ValidateResponseDto {
+  ValidateResponseDto copyWith(
+      {UserInfoDto? user, String? id, String? accessToken, bool? success}) {
+    return ValidateResponseDto(
+        user: user ?? this.user,
         id: id ?? this.id,
-        username: username ?? this.username,
-        name: name ?? this.name);
+        accessToken: accessToken ?? this.accessToken,
+        success: success ?? this.success);
   }
 
-  RegisterResponseDto copyWithWrapped(
-      {Wrapped<String>? id,
-      Wrapped<String>? username,
-      Wrapped<String?>? name}) {
-    return RegisterResponseDto(
+  ValidateResponseDto copyWithWrapped(
+      {Wrapped<UserInfoDto>? user,
+      Wrapped<String>? id,
+      Wrapped<String>? accessToken,
+      Wrapped<bool>? success}) {
+    return ValidateResponseDto(
+        user: (user != null ? user.value : this.user),
         id: (id != null ? id.value : this.id),
-        username: (username != null ? username.value : this.username),
-        name: (name != null ? name.value : this.name));
+        accessToken:
+            (accessToken != null ? accessToken.value : this.accessToken),
+        success: (success != null ? success.value : this.success));
   }
 }
 
@@ -1041,9 +1220,9 @@ class EnrichedParticipantResponseDto {
     required this.username,
     required this.name,
     required this.deaths,
-    required this.points,
     required this.isAdmin,
     required this.score,
+    required this.points,
   });
 
   factory EnrichedParticipantResponseDto.fromJson(Map<String, dynamic> json) =>
@@ -1060,12 +1239,12 @@ class EnrichedParticipantResponseDto {
   final String name;
   @JsonKey(name: 'deaths')
   final double deaths;
-  @JsonKey(name: 'points')
-  final double points;
   @JsonKey(name: 'isAdmin')
   final bool isAdmin;
   @JsonKey(name: 'score')
   final double score;
+  @JsonKey(name: 'points')
+  final double points;
   static const fromJsonFactory = _$EnrichedParticipantResponseDtoFromJson;
 
   @override
@@ -1081,13 +1260,13 @@ class EnrichedParticipantResponseDto {
                 const DeepCollectionEquality().equals(other.name, name)) &&
             (identical(other.deaths, deaths) ||
                 const DeepCollectionEquality().equals(other.deaths, deaths)) &&
-            (identical(other.points, points) ||
-                const DeepCollectionEquality().equals(other.points, points)) &&
             (identical(other.isAdmin, isAdmin) ||
                 const DeepCollectionEquality()
                     .equals(other.isAdmin, isAdmin)) &&
             (identical(other.score, score) ||
-                const DeepCollectionEquality().equals(other.score, score)));
+                const DeepCollectionEquality().equals(other.score, score)) &&
+            (identical(other.points, points) ||
+                const DeepCollectionEquality().equals(other.points, points)));
   }
 
   @override
@@ -1099,9 +1278,9 @@ class EnrichedParticipantResponseDto {
       const DeepCollectionEquality().hash(username) ^
       const DeepCollectionEquality().hash(name) ^
       const DeepCollectionEquality().hash(deaths) ^
-      const DeepCollectionEquality().hash(points) ^
       const DeepCollectionEquality().hash(isAdmin) ^
       const DeepCollectionEquality().hash(score) ^
+      const DeepCollectionEquality().hash(points) ^
       runtimeType.hashCode;
 }
 
@@ -1112,17 +1291,17 @@ extension $EnrichedParticipantResponseDtoExtension
       String? username,
       String? name,
       double? deaths,
-      double? points,
       bool? isAdmin,
-      double? score}) {
+      double? score,
+      double? points}) {
     return EnrichedParticipantResponseDto(
         userId: userId ?? this.userId,
         username: username ?? this.username,
         name: name ?? this.name,
         deaths: deaths ?? this.deaths,
-        points: points ?? this.points,
         isAdmin: isAdmin ?? this.isAdmin,
-        score: score ?? this.score);
+        score: score ?? this.score,
+        points: points ?? this.points);
   }
 
   EnrichedParticipantResponseDto copyWithWrapped(
@@ -1130,17 +1309,17 @@ extension $EnrichedParticipantResponseDtoExtension
       Wrapped<String>? username,
       Wrapped<String>? name,
       Wrapped<double>? deaths,
-      Wrapped<double>? points,
       Wrapped<bool>? isAdmin,
-      Wrapped<double>? score}) {
+      Wrapped<double>? score,
+      Wrapped<double>? points}) {
     return EnrichedParticipantResponseDto(
         userId: (userId != null ? userId.value : this.userId),
         username: (username != null ? username.value : this.username),
         name: (name != null ? name.value : this.name),
         deaths: (deaths != null ? deaths.value : this.deaths),
-        points: (points != null ? points.value : this.points),
         isAdmin: (isAdmin != null ? isAdmin.value : this.isAdmin),
-        score: (score != null ? score.value : this.score));
+        score: (score != null ? score.value : this.score),
+        points: (points != null ? points.value : this.points));
   }
 }
 
@@ -1881,7 +2060,6 @@ class ParticipantResponseDto {
     required this.username,
     required this.name,
     required this.deaths,
-    required this.points,
     required this.isAdmin,
   });
 
@@ -1899,8 +2077,6 @@ class ParticipantResponseDto {
   final String name;
   @JsonKey(name: 'deaths')
   final double deaths;
-  @JsonKey(name: 'points')
-  final double points;
   @JsonKey(name: 'isAdmin')
   final bool isAdmin;
   static const fromJsonFactory = _$ParticipantResponseDtoFromJson;
@@ -1918,8 +2094,6 @@ class ParticipantResponseDto {
                 const DeepCollectionEquality().equals(other.name, name)) &&
             (identical(other.deaths, deaths) ||
                 const DeepCollectionEquality().equals(other.deaths, deaths)) &&
-            (identical(other.points, points) ||
-                const DeepCollectionEquality().equals(other.points, points)) &&
             (identical(other.isAdmin, isAdmin) ||
                 const DeepCollectionEquality().equals(other.isAdmin, isAdmin)));
   }
@@ -1933,7 +2107,6 @@ class ParticipantResponseDto {
       const DeepCollectionEquality().hash(username) ^
       const DeepCollectionEquality().hash(name) ^
       const DeepCollectionEquality().hash(deaths) ^
-      const DeepCollectionEquality().hash(points) ^
       const DeepCollectionEquality().hash(isAdmin) ^
       runtimeType.hashCode;
 }
@@ -1944,14 +2117,12 @@ extension $ParticipantResponseDtoExtension on ParticipantResponseDto {
       String? username,
       String? name,
       double? deaths,
-      double? points,
       bool? isAdmin}) {
     return ParticipantResponseDto(
         userId: userId ?? this.userId,
         username: username ?? this.username,
         name: name ?? this.name,
         deaths: deaths ?? this.deaths,
-        points: points ?? this.points,
         isAdmin: isAdmin ?? this.isAdmin);
   }
 
@@ -1960,14 +2131,12 @@ extension $ParticipantResponseDtoExtension on ParticipantResponseDto {
       Wrapped<String>? username,
       Wrapped<String>? name,
       Wrapped<double>? deaths,
-      Wrapped<double>? points,
       Wrapped<bool>? isAdmin}) {
     return ParticipantResponseDto(
         userId: (userId != null ? userId.value : this.userId),
         username: (username != null ? username.value : this.username),
         name: (name != null ? name.value : this.name),
         deaths: (deaths != null ? deaths.value : this.deaths),
-        points: (points != null ? points.value : this.points),
         isAdmin: (isAdmin != null ? isAdmin.value : this.isAdmin));
   }
 }
@@ -2012,6 +2181,139 @@ extension $AddParticipantDtoExtension on AddParticipantDto {
   AddParticipantDto copyWithWrapped({Wrapped<String>? userId}) {
     return AddParticipantDto(
         userId: (userId != null ? userId.value : this.userId));
+  }
+}
+
+@JsonSerializable(explicitToJson: true)
+class UserStatisticsDto {
+  const UserStatisticsDto({
+    required this.userId,
+    required this.username,
+    required this.totalDeaths,
+    required this.averageDeathsPerLocke,
+    required this.totalBattlesWon,
+    required this.totalBattlePoints,
+    required this.performanceScore,
+    this.rank,
+  });
+
+  factory UserStatisticsDto.fromJson(Map<String, dynamic> json) =>
+      _$UserStatisticsDtoFromJson(json);
+
+  static const toJsonFactory = _$UserStatisticsDtoToJson;
+  Map<String, dynamic> toJson() => _$UserStatisticsDtoToJson(this);
+
+  @JsonKey(name: 'userId', defaultValue: 'default')
+  final String userId;
+  @JsonKey(name: 'username', defaultValue: 'default')
+  final String username;
+  @JsonKey(name: 'totalDeaths')
+  final double totalDeaths;
+  @JsonKey(name: 'averageDeathsPerLocke')
+  final double averageDeathsPerLocke;
+  @JsonKey(name: 'totalBattlesWon')
+  final double totalBattlesWon;
+  @JsonKey(name: 'totalBattlePoints')
+  final double totalBattlePoints;
+  @JsonKey(name: 'performanceScore')
+  final double performanceScore;
+  @JsonKey(name: 'rank')
+  final double? rank;
+  static const fromJsonFactory = _$UserStatisticsDtoFromJson;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other is UserStatisticsDto &&
+            (identical(other.userId, userId) ||
+                const DeepCollectionEquality().equals(other.userId, userId)) &&
+            (identical(other.username, username) ||
+                const DeepCollectionEquality()
+                    .equals(other.username, username)) &&
+            (identical(other.totalDeaths, totalDeaths) ||
+                const DeepCollectionEquality()
+                    .equals(other.totalDeaths, totalDeaths)) &&
+            (identical(other.averageDeathsPerLocke, averageDeathsPerLocke) ||
+                const DeepCollectionEquality().equals(
+                    other.averageDeathsPerLocke, averageDeathsPerLocke)) &&
+            (identical(other.totalBattlesWon, totalBattlesWon) ||
+                const DeepCollectionEquality()
+                    .equals(other.totalBattlesWon, totalBattlesWon)) &&
+            (identical(other.totalBattlePoints, totalBattlePoints) ||
+                const DeepCollectionEquality()
+                    .equals(other.totalBattlePoints, totalBattlePoints)) &&
+            (identical(other.performanceScore, performanceScore) ||
+                const DeepCollectionEquality()
+                    .equals(other.performanceScore, performanceScore)) &&
+            (identical(other.rank, rank) ||
+                const DeepCollectionEquality().equals(other.rank, rank)));
+  }
+
+  @override
+  String toString() => jsonEncode(this);
+
+  @override
+  int get hashCode =>
+      const DeepCollectionEquality().hash(userId) ^
+      const DeepCollectionEquality().hash(username) ^
+      const DeepCollectionEquality().hash(totalDeaths) ^
+      const DeepCollectionEquality().hash(averageDeathsPerLocke) ^
+      const DeepCollectionEquality().hash(totalBattlesWon) ^
+      const DeepCollectionEquality().hash(totalBattlePoints) ^
+      const DeepCollectionEquality().hash(performanceScore) ^
+      const DeepCollectionEquality().hash(rank) ^
+      runtimeType.hashCode;
+}
+
+extension $UserStatisticsDtoExtension on UserStatisticsDto {
+  UserStatisticsDto copyWith(
+      {String? userId,
+      String? username,
+      double? totalDeaths,
+      double? averageDeathsPerLocke,
+      double? totalBattlesWon,
+      double? totalBattlePoints,
+      double? performanceScore,
+      double? rank}) {
+    return UserStatisticsDto(
+        userId: userId ?? this.userId,
+        username: username ?? this.username,
+        totalDeaths: totalDeaths ?? this.totalDeaths,
+        averageDeathsPerLocke:
+            averageDeathsPerLocke ?? this.averageDeathsPerLocke,
+        totalBattlesWon: totalBattlesWon ?? this.totalBattlesWon,
+        totalBattlePoints: totalBattlePoints ?? this.totalBattlePoints,
+        performanceScore: performanceScore ?? this.performanceScore,
+        rank: rank ?? this.rank);
+  }
+
+  UserStatisticsDto copyWithWrapped(
+      {Wrapped<String>? userId,
+      Wrapped<String>? username,
+      Wrapped<double>? totalDeaths,
+      Wrapped<double>? averageDeathsPerLocke,
+      Wrapped<double>? totalBattlesWon,
+      Wrapped<double>? totalBattlePoints,
+      Wrapped<double>? performanceScore,
+      Wrapped<double?>? rank}) {
+    return UserStatisticsDto(
+        userId: (userId != null ? userId.value : this.userId),
+        username: (username != null ? username.value : this.username),
+        totalDeaths:
+            (totalDeaths != null ? totalDeaths.value : this.totalDeaths),
+        averageDeathsPerLocke: (averageDeathsPerLocke != null
+            ? averageDeathsPerLocke.value
+            : this.averageDeathsPerLocke),
+        totalBattlesWon: (totalBattlesWon != null
+            ? totalBattlesWon.value
+            : this.totalBattlesWon),
+        totalBattlePoints: (totalBattlePoints != null
+            ? totalBattlePoints.value
+            : this.totalBattlePoints),
+        performanceScore: (performanceScore != null
+            ? performanceScore.value
+            : this.performanceScore),
+        rank: (rank != null ? rank.value : this.rank));
   }
 }
 

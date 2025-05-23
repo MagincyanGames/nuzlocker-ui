@@ -802,15 +802,14 @@ class _LockeDetailsScreenState extends State<LockeDetailsScreen>
                                         builder: (context, constraints) {
                                           final maxAvailableWidth =
                                               constraints.maxWidth;
-                                          final minWidth =
-                                              maxAvailableWidth * 0.1;
 
+                                          // Replace the existing calculated width with this
                                           final calculatedWidth =
                                               killsCount == 0
-                                                  ? minWidth
+                                                  ? 0.0 // No width for zero values
                                                   : maxAvailableWidth *
                                                       (killsCount /
-                                                          maxKillsForChart); // Use passed parameter
+                                                          maxKillsForChart);
 
                                           return Container(
                                             height: 28,
@@ -822,36 +821,54 @@ class _LockeDetailsScreenState extends State<LockeDetailsScreen>
                                             ),
                                             child: Row(
                                               children: [
-                                                Container(
-                                                  width: calculatedWidth,
-                                                  height: 28,
-                                                  decoration: BoxDecoration(
-                                                    color:
-                                                        isCurrentUser
-                                                            ? colorScheme
-                                                                .primary // Standardized color
-                                                            : colorScheme
-                                                                .secondary, // Standardized color
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          14,
+                                                if (killsCount >
+                                                    0) // Only show container if value > 0
+                                                  Container(
+                                                    width: calculatedWidth,
+                                                    height: 28,
+                                                    decoration: BoxDecoration(
+                                                      color:
+                                                          isCurrentUser
+                                                              ? colorScheme
+                                                                  .primary
+                                                              : colorScheme
+                                                                  .secondary,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            14,
+                                                          ),
+                                                    ),
+                                                    alignment:
+                                                        Alignment.centerLeft,
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                          left: 10,
                                                         ),
-                                                  ),
-                                                  alignment:
-                                                      Alignment.centerLeft,
-                                                  padding:
-                                                      const EdgeInsets.only(
-                                                        left: 10,
+                                                    child: Text(
+                                                      '$killsCount',
+                                                      style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontWeight:
+                                                            FontWeight.bold,
                                                       ),
-                                                  child: Text(
-                                                    '$killsCount',
-                                                    style: const TextStyle(
-                                                      color: Colors.white,
-                                                      fontWeight:
-                                                          FontWeight.bold,
                                                     ),
                                                   ),
-                                                ),
+                                                if (killsCount ==
+                                                    0) // Display zero text for empty bars
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                          left: 10,
+                                                        ),
+                                                    child: Text(
+                                                      '0',
+                                                      style: TextStyle(
+                                                        color:
+                                                            colorScheme
+                                                                .onSurfaceVariant,
+                                                      ),
+                                                    ),
+                                                  ),
                                               ],
                                             ),
                                           );
@@ -995,12 +1012,11 @@ class _LockeDetailsScreenState extends State<LockeDetailsScreen>
                                         builder: (context, constraints) {
                                           final maxAvailableWidth =
                                               constraints.maxWidth;
-                                          final minWidth =
-                                              maxAvailableWidth * 0.1;
 
+                                          // Replace the existing calculated width with this
                                           final calculatedWidth =
                                               pointsCount == 0
-                                                  ? minWidth
+                                                  ? 0.0 // No width for zero values
                                                   : maxAvailableWidth *
                                                       (pointsCount / maxPoints);
 
@@ -1014,36 +1030,54 @@ class _LockeDetailsScreenState extends State<LockeDetailsScreen>
                                             ),
                                             child: Row(
                                               children: [
-                                                Container(
-                                                  width: calculatedWidth,
-                                                  height: 28,
-                                                  decoration: BoxDecoration(
-                                                    color:
-                                                        isCurrentUser
-                                                            ? colorScheme
-                                                                .primary // Standardized color
-                                                            : colorScheme
-                                                                .secondary, // Standardized color
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          14,
+                                                if (pointsCount >
+                                                    0) // Only show container if value > 0
+                                                  Container(
+                                                    width: calculatedWidth,
+                                                    height: 28,
+                                                    decoration: BoxDecoration(
+                                                      color:
+                                                          isCurrentUser
+                                                              ? colorScheme
+                                                                  .primary
+                                                              : colorScheme
+                                                                  .secondary,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            14,
+                                                          ),
+                                                    ),
+                                                    alignment:
+                                                        Alignment.centerLeft,
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                          left: 10,
                                                         ),
-                                                  ),
-                                                  alignment:
-                                                      Alignment.centerLeft,
-                                                  padding:
-                                                      const EdgeInsets.only(
-                                                        left: 10,
+                                                    child: Text(
+                                                      '$pointsCount',
+                                                      style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontWeight:
+                                                            FontWeight.bold,
                                                       ),
-                                                  child: Text(
-                                                    '$pointsCount',
-                                                    style: const TextStyle(
-                                                      color: Colors.white,
-                                                      fontWeight:
-                                                          FontWeight.bold,
                                                     ),
                                                   ),
-                                                ),
+                                                if (pointsCount ==
+                                                    0) // Display zero text for empty bars
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                          left: 10,
+                                                        ),
+                                                    child: Text(
+                                                      '0',
+                                                      style: TextStyle(
+                                                        color:
+                                                            colorScheme
+                                                                .onSurfaceVariant,
+                                                      ),
+                                                    ),
+                                                  ),
                                               ],
                                             ),
                                           );
@@ -1131,13 +1165,6 @@ class _LockeDetailsScreenState extends State<LockeDetailsScreen>
                                         builder: (context, constraints) {
                                           final maxAvailableWidth =
                                               constraints.maxWidth;
-                                          final minWidth =
-                                              maxAvailableWidth * 0.1;
-                                          final calculatedWidth =
-                                              scoreCount == 0
-                                                  ? minWidth
-                                                  : maxAvailableWidth *
-                                                      (scoreCount / maxScore);
 
                                           return Container(
                                             height: 28,
@@ -1150,7 +1177,10 @@ class _LockeDetailsScreenState extends State<LockeDetailsScreen>
                                             child: Row(
                                               children: [
                                                 Container(
-                                                  width: calculatedWidth,
+                                                  width:
+                                                      maxAvailableWidth *
+                                                      (scoreCount /
+                                                          maxScore.toDouble()),
                                                   height: 28,
                                                   decoration: BoxDecoration(
                                                     color:

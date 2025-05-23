@@ -20,12 +20,12 @@ class UserService extends ChangeNotifier {
   Future<void> init() async {
     _apiService = ApiService();
     await _apiService.init();
-    
+
     // Check if token exists in shared preferences
     if (_apiService.hasToken) {
       _token = await _loadToken();
       await _loadUserData(); // Load cached user data
-      
+
       // Try to validate authentication by getting user profile
       try {
         await getCurrentUser();
@@ -47,7 +47,7 @@ class UserService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _userId = prefs.getString('user_id');
     _username = prefs.getString('username');
-    
+
     if (_userId != null && _username != null) {
       // Create minimal user object from cached data
       _currentUser = UserResponseDto(
@@ -82,19 +82,19 @@ class UserService extends ChangeNotifier {
   Future<bool> login(String username, String password) async {
     try {
       final response = await _apiService.login(username, password);
-      
+
       if (response != null && response.success) {
         _isAuthenticated = true;
         _token = response.accessToken;
         _userId = response.id;
         _username = username;
-        
+
         // Get complete user profile
         await getCurrentUser();
-        
+
         // Save user data to shared preferences
         await _saveUserData();
-        
+
         notifyListeners();
         return true;
       }
@@ -105,9 +105,43 @@ class UserService extends ChangeNotifier {
     }
   }
 
-  Future<bool> register(String username, String password, {String? name}) async {
+  Future<bool> register(
+    String username,
+    String password, {
+    String? name,
+  }) async {
     try {
-      final response = await _apiService.register(username, password, name);
+      // Transform username to a formatted name if name is null
+      String processedName;
+      if (name == null) {
+        // Replace underscores with spaces
+        String noUnderscores = username.replaceAll('_', ' ');
+
+        // Add a space before each uppercase letter (except at the beginning)
+        String formatted = noUnderscores.replaceAllMapped(
+          RegExp(r'(?<=[a-z])[A-Z]'),
+          (match) => ' ${match.group(0)}',
+        );
+
+        // Split by spaces and capitalize each word
+        List<String> words = formatted.split(' ');
+        processedName = words
+            .map(
+              (word) =>
+                  word.isNotEmpty
+                      ? '${word[0].toUpperCase()}${word.substring(1)}'
+                      : '',
+            )
+            .join(' ');
+      } else {
+        processedName = name;
+      }
+
+      final response = await _apiService.register(
+        username,
+        password,
+        processedName,
+      );
       if (response != null) {
         // After registration, login automatically
         return await login(username, password);
@@ -120,13 +154,13 @@ class UserService extends ChangeNotifier {
 
   Future<void> logout() async {
     await _apiService.clearToken();
-    
+
     // Clear user data from shared preferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('user_id');
     await prefs.remove('username');
     await prefs.remove('user_name');
-    
+
     _clearUserData();
   }
 
@@ -137,7 +171,7 @@ class UserService extends ChangeNotifier {
         // For example:
         // final response = await _api.apiUsersProfileGet();
         // _currentUser = response.body;
-        
+
         // For now, we'll use the minimal user object we have
         if (_userId != null && _username != null && _currentUser == null) {
           _currentUser = UserResponseDto(
@@ -146,7 +180,7 @@ class UserService extends ChangeNotifier {
             name: _username!, // Default to username if name not available
           );
         }
-        
+
         _isAuthenticated = true;
         notifyListeners();
       } else {
@@ -162,7 +196,7 @@ class UserService extends ChangeNotifier {
   Future<void> updateProfile({String? name, String? email}) async {
     // This would need an implementation in ApiService
     // In a real implementation, add a method to update user profile
-    
+
     // After successful update:
     if (name != null && _currentUser != null) {
       _currentUser = _currentUser!.copyWith(name: name);

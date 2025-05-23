@@ -42,6 +42,63 @@ Map<String, dynamic> _$UserStatsResponseDtoToJson(
       'totalLockes': instance.totalLockes,
     };
 
+RegisterDto _$RegisterDtoFromJson(Map<String, dynamic> json) => RegisterDto(
+      name: json['name'] as String? ?? 'default',
+      username: json['username'] as String? ?? 'default',
+      password: json['password'] as String? ?? 'default',
+    );
+
+Map<String, dynamic> _$RegisterDtoToJson(RegisterDto instance) =>
+    <String, dynamic>{
+      'name': instance.name,
+      'username': instance.username,
+      'password': instance.password,
+    };
+
+UserInfoDto _$UserInfoDtoFromJson(Map<String, dynamic> json) => UserInfoDto(
+      name: json['name'] as String? ?? 'default',
+      username: json['username'] as String? ?? 'default',
+    );
+
+Map<String, dynamic> _$UserInfoDtoToJson(UserInfoDto instance) =>
+    <String, dynamic>{
+      'name': instance.name,
+      'username': instance.username,
+    };
+
+RegisterResponseDto _$RegisterResponseDtoFromJson(Map<String, dynamic> json) =>
+    RegisterResponseDto(
+      user: UserInfoDto.fromJson(json['user'] as Map<String, dynamic>),
+      id: json['id'] as String? ?? 'default',
+      accessToken: json['access_token'] as String? ?? 'default',
+      success: json['success'] as bool,
+    );
+
+Map<String, dynamic> _$RegisterResponseDtoToJson(
+        RegisterResponseDto instance) =>
+    <String, dynamic>{
+      'user': instance.user.toJson(),
+      'id': instance.id,
+      'access_token': instance.accessToken,
+      'success': instance.success,
+    };
+
+ErrorResponseDto _$ErrorResponseDtoFromJson(Map<String, dynamic> json) =>
+    ErrorResponseDto(
+      statusCode: (json['statusCode'] as num).toDouble(),
+      message: json['message'],
+      error: json['error'] as String? ?? 'default',
+      success: json['success'] as bool,
+    );
+
+Map<String, dynamic> _$ErrorResponseDtoToJson(ErrorResponseDto instance) =>
+    <String, dynamic>{
+      'statusCode': instance.statusCode,
+      'message': instance.message,
+      'error': instance.error,
+      'success': instance.success,
+    };
+
 LoginDto _$LoginDtoFromJson(Map<String, dynamic> json) => LoginDto(
       username: json['username'] as String? ?? 'default',
       password: json['password'] as String? ?? 'default',
@@ -54,6 +111,7 @@ Map<String, dynamic> _$LoginDtoToJson(LoginDto instance) => <String, dynamic>{
 
 LoginResponseDto _$LoginResponseDtoFromJson(Map<String, dynamic> json) =>
     LoginResponseDto(
+      user: UserInfoDto.fromJson(json['user'] as Map<String, dynamic>),
       id: json['id'] as String? ?? 'default',
       accessToken: json['access_token'] as String? ?? 'default',
       success: json['success'] as bool,
@@ -61,60 +119,27 @@ LoginResponseDto _$LoginResponseDtoFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$LoginResponseDtoToJson(LoginResponseDto instance) =>
     <String, dynamic>{
+      'user': instance.user.toJson(),
       'id': instance.id,
       'access_token': instance.accessToken,
       'success': instance.success,
     };
 
-ErrorResponseDto _$ErrorResponseDtoFromJson(Map<String, dynamic> json) =>
-    ErrorResponseDto(
+ValidateResponseDto _$ValidateResponseDtoFromJson(Map<String, dynamic> json) =>
+    ValidateResponseDto(
+      user: UserInfoDto.fromJson(json['user'] as Map<String, dynamic>),
+      id: json['id'] as String? ?? 'default',
+      accessToken: json['access_token'] as String? ?? 'default',
       success: json['success'] as bool,
-      message: json['message'] as String? ?? 'default',
     );
 
-Map<String, dynamic> _$ErrorResponseDtoToJson(ErrorResponseDto instance) =>
+Map<String, dynamic> _$ValidateResponseDtoToJson(
+        ValidateResponseDto instance) =>
     <String, dynamic>{
+      'user': instance.user.toJson(),
+      'id': instance.id,
+      'access_token': instance.accessToken,
       'success': instance.success,
-      'message': instance.message,
-    };
-
-ValidateTokenDto _$ValidateTokenDtoFromJson(Map<String, dynamic> json) =>
-    ValidateTokenDto(
-      token: json['token'] as String? ?? 'default',
-    );
-
-Map<String, dynamic> _$ValidateTokenDtoToJson(ValidateTokenDto instance) =>
-    <String, dynamic>{
-      'token': instance.token,
-    };
-
-ValidateTokenResponseDto _$ValidateTokenResponseDtoFromJson(
-        Map<String, dynamic> json) =>
-    ValidateTokenResponseDto(
-      valid: json['valid'] as bool,
-      id: json['id'] as String? ?? 'default',
-    );
-
-Map<String, dynamic> _$ValidateTokenResponseDtoToJson(
-        ValidateTokenResponseDto instance) =>
-    <String, dynamic>{
-      'valid': instance.valid,
-      'id': instance.id,
-    };
-
-RegisterResponseDto _$RegisterResponseDtoFromJson(Map<String, dynamic> json) =>
-    RegisterResponseDto(
-      id: json['id'] as String? ?? 'default',
-      username: json['username'] as String? ?? 'default',
-      name: json['name'] as String? ?? 'default',
-    );
-
-Map<String, dynamic> _$RegisterResponseDtoToJson(
-        RegisterResponseDto instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'username': instance.username,
-      'name': instance.name,
     };
 
 CreateLockeDto _$CreateLockeDtoFromJson(Map<String, dynamic> json) =>
@@ -143,9 +168,9 @@ EnrichedParticipantResponseDto _$EnrichedParticipantResponseDtoFromJson(
       username: json['username'] as String? ?? 'default',
       name: json['name'] as String? ?? 'default',
       deaths: (json['deaths'] as num).toDouble(),
-      points: (json['points'] as num).toDouble(),
       isAdmin: json['isAdmin'] as bool,
       score: (json['score'] as num).toDouble(),
+      points: (json['points'] as num).toDouble(),
     );
 
 Map<String, dynamic> _$EnrichedParticipantResponseDtoToJson(
@@ -155,9 +180,9 @@ Map<String, dynamic> _$EnrichedParticipantResponseDtoToJson(
       'username': instance.username,
       'name': instance.name,
       'deaths': instance.deaths,
-      'points': instance.points,
       'isAdmin': instance.isAdmin,
       'score': instance.score,
+      'points': instance.points,
     };
 
 EnrichedLockeResponseDto _$EnrichedLockeResponseDtoFromJson(
@@ -355,7 +380,6 @@ ParticipantResponseDto _$ParticipantResponseDtoFromJson(
       username: json['username'] as String? ?? 'default',
       name: json['name'] as String? ?? 'default',
       deaths: (json['deaths'] as num).toDouble(),
-      points: (json['points'] as num).toDouble(),
       isAdmin: json['isAdmin'] as bool,
     );
 
@@ -366,7 +390,6 @@ Map<String, dynamic> _$ParticipantResponseDtoToJson(
       'username': instance.username,
       'name': instance.name,
       'deaths': instance.deaths,
-      'points': instance.points,
       'isAdmin': instance.isAdmin,
     };
 
@@ -378,4 +401,28 @@ AddParticipantDto _$AddParticipantDtoFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$AddParticipantDtoToJson(AddParticipantDto instance) =>
     <String, dynamic>{
       'userId': instance.userId,
+    };
+
+UserStatisticsDto _$UserStatisticsDtoFromJson(Map<String, dynamic> json) =>
+    UserStatisticsDto(
+      userId: json['userId'] as String? ?? 'default',
+      username: json['username'] as String? ?? 'default',
+      totalDeaths: (json['totalDeaths'] as num).toDouble(),
+      averageDeathsPerLocke: (json['averageDeathsPerLocke'] as num).toDouble(),
+      totalBattlesWon: (json['totalBattlesWon'] as num).toDouble(),
+      totalBattlePoints: (json['totalBattlePoints'] as num).toDouble(),
+      performanceScore: (json['performanceScore'] as num).toDouble(),
+      rank: (json['rank'] as num?)?.toDouble(),
+    );
+
+Map<String, dynamic> _$UserStatisticsDtoToJson(UserStatisticsDto instance) =>
+    <String, dynamic>{
+      'userId': instance.userId,
+      'username': instance.username,
+      'totalDeaths': instance.totalDeaths,
+      'averageDeathsPerLocke': instance.averageDeathsPerLocke,
+      'totalBattlesWon': instance.totalBattlesWon,
+      'totalBattlePoints': instance.totalBattlePoints,
+      'performanceScore': instance.performanceScore,
+      'rank': instance.rank,
     };

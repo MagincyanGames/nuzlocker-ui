@@ -6,6 +6,7 @@ import 'package:nuzlocker_ui/screens/new_locke_screen.dart';
 import 'package:nuzlocker_ui/screens/signup_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
+import 'package:nuzlocker_ui/screens/statistics_screen.dart';
 
 // Create a key for the navigator
 final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -69,6 +70,10 @@ final GoRouter router = GoRouter(
       builder: (BuildContext context, GoRouterState state) {
         return const SignUpScreen();
       },
+    ),
+    GoRoute(
+      path: '/statistics',
+      builder: (context, state) => const StatisticsScreen(),
     ),
   ],
 

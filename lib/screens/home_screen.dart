@@ -119,22 +119,23 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!userService.isAuthenticated || userService.currentUser == null) {
       return 0;
     }
-    
+
     // Check if participants list exists and if user is a participant
     if (locke.participants == null || locke.participants!.isEmpty) {
       return 0;
     }
-    
+
     // Find the current user in participants list
-    final userParticipant = locke.participants!.where(
-      (p) => p.userId == userService.currentUser!.id
-    ).toList();
-    
+    final userParticipant =
+        locke.participants!
+            .where((p) => p.userId == userService.currentUser!.id)
+            .toList();
+
     // If user is not a participant, return 0
     if (userParticipant.isEmpty) {
       return 0;
     }
-    
+
     // Return death count if user is a participant
     return userParticipant.first.deaths ?? 0;
   }
@@ -250,31 +251,91 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: colorScheme.primaryContainer,
         foregroundColor: colorScheme.onPrimaryContainer,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.list),
-            tooltip: 'Ver todas las partidas',
-            onPressed: () {
-              context.push('/lockes');
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            tooltip: 'Menú',
+            onSelected: (value) {
+              switch (value) {
+                case 'statistics':
+                  context.push('/statistics');
+                  break;
+                case 'lockes':
+                  context.push('/lockes');
+                  break;
+                case 'logout':
+                  userService.logout();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Sesión cerrada')),
+                  );
+                  break;
+              }
             },
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Cerrar sesión',
-            onPressed: () {
-              userService.logout();
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('Sesión cerrada')));
-            },
+            itemBuilder:
+                (context) => [
+                  const PopupMenuItem<String>(
+                    value: 'statistics',
+                    child: Row(
+                      children: [
+                        Icon(Icons.bar_chart),
+                        SizedBox(width: 8),
+                        Text('Estadísticas'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem<String>(
+                    value: 'lockes',
+                    child: Row(
+                      children: [
+                        Icon(Icons.list),
+                        SizedBox(width: 8),
+                        Text('Ver todas las partidas'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem<String>(
+                    value: 'logout',
+                    child: Row(
+                      children: [
+                        Icon(Icons.logout),
+                        SizedBox(width: 8),
+                        Text('Cerrar sesión'),
+                      ],
+                    ),
+                  ),
+                ],
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
         onPressed: () => context.push('/lockes/new'),
-        label: const Text('Nueva partida'),
-        icon: const Icon(Icons.add),
         backgroundColor: colorScheme.primaryContainer,
         foregroundColor: colorScheme.onPrimaryContainer,
+        child: Stack(
+          children: [
+            const Center(
+              child: Icon(
+                Icons.catching_pokemon,
+                size: 35,
+              ), // Increased size from 24 to 28
+            ),
+            Positioned(
+              right: 10, // Adjusted position to be closer to the icon
+              bottom: 10, // Adjusted position to be closer to the icon
+              child: Container(
+                padding: const EdgeInsets.all(1.5), // Made slightly smaller
+                decoration: BoxDecoration(
+                  color: colorScheme.primary,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: colorScheme.primaryContainer,
+                    width: 1.5,
+                  ),
+                ),
+                child: Icon(Icons.add, size: 10, color: colorScheme.onPrimary),
+              ),
+            ),
+          ],
+        ),
       ),
       body: RefreshIndicator(
         onRefresh: _handleRefresh,
@@ -327,17 +388,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               ],
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          TextButton.icon(
-                            onPressed: () => context.push('/lockes'),
-                            icon: const Icon(Icons.list),
-                            label: const Text('Ver todas las partidas'),
                           ),
                         ],
                       ),
@@ -421,7 +471,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
               // Lista de partidas o estado vacío
               if (_lockes.isEmpty)
-                Center( // Wrap the Card with a Center widget
+                Center(
+                  // Wrap the Card with a Center widget
                   child: Card(
                     elevation: 0,
                     margin: const EdgeInsets.symmetric(vertical: 8),
@@ -435,7 +486,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Column(
-                        mainAxisSize: MainAxisSize.min, // Ensure Column takes minimum space
+                        mainAxisSize:
+                            MainAxisSize
+                                .min, // Ensure Column takes minimum space
                         children: [
                           Icon(
                             Icons.catching_pokemon,
@@ -454,7 +507,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           const SizedBox(height: 24),
                           FilledButton.tonalIcon(
-                            onPressed: () => context.push('/lockes/new'), // Corrected route
+                            onPressed:
+                                () => context.push(
+                                  '/lockes/new',
+                                ), // Corrected route
                             icon: const Icon(Icons.add),
                             label: const Text('Crear primera partida'),
                             style: FilledButton.styleFrom(

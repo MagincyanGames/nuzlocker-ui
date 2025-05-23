@@ -56,6 +56,20 @@ final class _$Api extends Api {
   }
 
   @override
+  Future<Response<RegisterResponseDto>> _apiAuthRegisterPost(
+      {required RegisterDto? body}) {
+    final Uri $url = Uri.parse('/api/auth/register');
+    final $body = body;
+    final Request $request = Request(
+      'POST',
+      $url,
+      client.baseUrl,
+      body: $body,
+    );
+    return client.send<RegisterResponseDto, RegisterResponseDto>($request);
+  }
+
+  @override
   Future<Response<LoginResponseDto>> _apiAuthLoginPost(
       {required LoginDto? body}) {
     final Uri $url = Uri.parse('/api/auth/login');
@@ -70,32 +84,14 @@ final class _$Api extends Api {
   }
 
   @override
-  Future<Response<ValidateTokenResponseDto>> _apiAuthValidatePost(
-      {required ValidateTokenDto? body}) {
+  Future<Response<ValidateResponseDto>> _apiAuthValidateGet() {
     final Uri $url = Uri.parse('/api/auth/validate');
-    final $body = body;
     final Request $request = Request(
-      'POST',
+      'GET',
       $url,
       client.baseUrl,
-      body: $body,
     );
-    return client
-        .send<ValidateTokenResponseDto, ValidateTokenResponseDto>($request);
-  }
-
-  @override
-  Future<Response<RegisterResponseDto>> _apiAuthRegisterPost(
-      {required LoginDto? body}) {
-    final Uri $url = Uri.parse('/api/auth/register');
-    final $body = body;
-    final Request $request = Request(
-      'POST',
-      $url,
-      client.baseUrl,
-      body: $body,
-    );
-    return client.send<RegisterResponseDto, RegisterResponseDto>($request);
+    return client.send<ValidateResponseDto, ValidateResponseDto>($request);
   }
 
   @override
@@ -325,5 +321,39 @@ final class _$Api extends Api {
     );
     return client.send<List<EnrichedLockeResponseDto>,
         EnrichedLockeResponseDto>($request);
+  }
+
+  @override
+  Future<Response<UserStatisticsDto>> _apiStatisticsMeGet() {
+    final Uri $url = Uri.parse('/api/statistics/me');
+    final Request $request = Request(
+      'GET',
+      $url,
+      client.baseUrl,
+    );
+    return client.send<UserStatisticsDto, UserStatisticsDto>($request);
+  }
+
+  @override
+  Future<Response<UserStatisticsDto>> _apiStatisticsUserUserIdGet(
+      {required String? userId}) {
+    final Uri $url = Uri.parse('/api/statistics/user/${userId}');
+    final Request $request = Request(
+      'GET',
+      $url,
+      client.baseUrl,
+    );
+    return client.send<UserStatisticsDto, UserStatisticsDto>($request);
+  }
+
+  @override
+  Future<Response<List<UserStatisticsDto>>> _apiStatisticsRankingsGet() {
+    final Uri $url = Uri.parse('/api/statistics/rankings');
+    final Request $request = Request(
+      'GET',
+      $url,
+      client.baseUrl,
+    );
+    return client.send<List<UserStatisticsDto>, UserStatisticsDto>($request);
   }
 }

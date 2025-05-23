@@ -34,8 +34,8 @@ class ApiService {
 
   void _initApi() {
     final client = ChopperClient(
-      baseUrl: Uri.parse('http://api.nuz.onara.top:6109'),
-      // baseUrl: Uri.parse('http://play.onara.top:3000'),
+      // baseUrl: Uri.parse('http://api.nuz.onara.top:6109'),
+      baseUrl: Uri.parse('http://play.onara.top:3000'),
       interceptors: [
         HttpLoggingInterceptor(),
         if (_token != null) _AuthInterceptor(_token!),
@@ -88,11 +88,11 @@ class ApiService {
   Future<RegisterResponseDto?> register(
     String username,
     String password,
-    String? name,
+    String name,
   ) async {
     try {
       final response = await api.apiAuthRegisterPost(
-        body: LoginDto(username: username, password: password),
+        body: RegisterDto(username: username, password: password, name: name),
       );
 
       if (response.isSuccessful && response.body != null) {
@@ -398,6 +398,54 @@ class ApiService {
       throw ApiException(response.statusCode, response.error.toString());
     } catch (e) {
       debugPrint('Error updating battle scores: $e');
+      rethrow;
+    }
+  }
+
+  // Agregar este método para obtener las estadísticas del usuario autenticado
+  Future<UserStatisticsDto> getMyStatistics() async {
+    try {
+      final response = await api.apiStatisticsMeGet();
+
+      if (response.isSuccessful && response.body != null) {
+        return response.body!;
+      }
+
+      throw ApiException(response.statusCode, response.error.toString());
+    } catch (e) {
+      debugPrint('Error obteniendo estadísticas: $e');
+      rethrow;
+    }
+  }
+
+  // Agregar este método para obtener rankings globales
+  Future<List<UserStatisticsDto>> getGlobalRankings() async {
+    try {
+      final response = await api.apiStatisticsRankingsGet();
+
+      if (response.isSuccessful && response.body != null) {
+        return response.body!;
+      }
+
+      throw ApiException(response.statusCode, response.error.toString());
+    } catch (e) {
+      debugPrint('Error obteniendo rankings globales: $e');
+      rethrow;
+    }
+  }
+
+  // Agregar este método para obtener estadísticas de un usuario específico
+  Future<dynamic> getUserStatistics(String userId) async {
+    try {
+      final response = await api.apiStatisticsUserUserIdGet(userId: userId);
+
+      if (response.isSuccessful && response.body != null) {
+        return response.body;
+      }
+
+      throw ApiException(response.statusCode, response.error.toString());
+    } catch (e) {
+      debugPrint('Error obteniendo estadísticas del usuario: $e');
       rethrow;
     }
   }

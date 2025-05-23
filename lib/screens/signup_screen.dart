@@ -49,21 +49,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
         final success = await userService.register(
           _usernameController.text,
           _passwordController.text,
-          name: _displayNameController.text.isNotEmpty
-              ? _displayNameController.text
-              : null,
+          name:
+              _displayNameController.text.isNotEmpty
+                  ? _displayNameController.text
+                  : null,
         );
 
         if (mounted) {
           if (success) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Registro exitoso. Por favor, inicia sesión.'),
+                content: Text('Registro exitoso.'),
                 backgroundColor: Colors.green,
               ),
             );
             context.go(
-              '/login',
+              '/',
             ); // Navigate to login screen after successful registration
           } else {
             // The UserService should ideally throw an error or return a more specific error message.
