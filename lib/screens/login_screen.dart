@@ -266,7 +266,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       
                       // Return to main menu button
                       OutlinedButton(
-                        onPressed: () => context.push('/'),
+                        onPressed: () => context.go('/'),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           minimumSize: const Size(double.infinity, 50),

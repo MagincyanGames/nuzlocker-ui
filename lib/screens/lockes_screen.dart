@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nuzlocker_ui/widgets/new_run_button.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../services/user_service.dart';
@@ -52,7 +53,7 @@ class _LockesScreenState extends State<LockesScreen>
       if (newMode != _filterMode) {
         setState(() {
           _filterMode = newMode;
-          
+
           // Importante: resetear el estado de carga cuando cambiamos de pestaña
           // para evitar que aparezca el indicador de carga al volver
           if (newMode == 'my' && _myLockes.isNotEmpty) {
@@ -61,9 +62,9 @@ class _LockesScreenState extends State<LockesScreen>
             _isLoadingAll = false;
           }
         });
-        
+
         // Fetch data for the new tab if it's empty or hasn't been loaded yet
-        if ((newMode == 'my' && _myLockes.isEmpty) || 
+        if ((newMode == 'my' && _myLockes.isEmpty) ||
             (newMode == 'all' && _allLockes.isEmpty)) {
           _fetchLockes(isInitialLoad: false);
         }
@@ -72,7 +73,7 @@ class _LockesScreenState extends State<LockesScreen>
 
     // Fetch initial data for the active tab
     _fetchLockes(isInitialLoad: true);
-    
+
     // Pre-fetch data for the other tab after a short delay
     Future.delayed(Duration(milliseconds: 500), () {
       if (mounted) {
@@ -90,24 +91,28 @@ class _LockesScreenState extends State<LockesScreen>
   // Fetch data for the tab that is NOT currently active
   void _fetchOtherTabData() {
     if (!mounted) return;
-    
+
     final otherMode = _filterMode == 'my' ? 'all' : 'my';
     _fetchLockesByMode(otherMode, isInitialLoad: false);
   }
 
   // Fetch data for the specific mode
-  Future<void> _fetchLockesByMode(String mode, {bool isInitialLoad = false}) async {
+  Future<void> _fetchLockesByMode(
+    String mode, {
+    bool isInitialLoad = false,
+  }) async {
     if (!mounted) return;
 
     final bool isCurrentTab = mode == _filterMode;
     final bool isEmpty = mode == 'my' ? _myLockes.isEmpty : _allLockes.isEmpty;
-    
+
     // Solo mostrar loader si:
     // 1. Es la pestaña actual
     // 2. No hay datos existentes
     // 3. No estamos en medio de un cambio de pestaña
-    final bool shouldShowLoader = isEmpty && isCurrentTab && !_tabController.indexIsChanging;
-    
+    final bool shouldShowLoader =
+        isEmpty && isCurrentTab && !_tabController.indexIsChanging;
+
     setState(() {
       if (shouldShowLoader) {
         if (mode == 'my') {
@@ -124,7 +129,7 @@ class _LockesScreenState extends State<LockesScreen>
     try {
       final userService = Provider.of<UserService>(context, listen: false);
       List<EnrichedLockeResponseDto> fetchedLockes = [];
-      
+
       if (mode == 'my') {
         if (!userService.isAuthenticated) {
           // For "my" mode, clear list if not authenticated
@@ -136,7 +141,9 @@ class _LockesScreenState extends State<LockesScreen>
           }
           return;
         }
-        fetchedLockes = await _apiService.getMyLockes(includeParticipating: true);
+        fetchedLockes = await _apiService.getMyLockes(
+          includeParticipating: true,
+        );
       } else {
         // For "all" mode
         fetchedLockes = await _apiService.getAllLockes();
@@ -163,7 +170,8 @@ class _LockesScreenState extends State<LockesScreen>
       }
     } catch (e) {
       debugPrint('Failed to fetch lockes for mode $mode: $e');
-      if (mounted && mode == _filterMode) { // Only show error for current tab
+      if (mounted && mode == _filterMode) {
+        // Only show error for current tab
         setState(() {
           _errorMessage = 'Failed to load lockes: ${e.toString()}';
           if (mode == 'my') {
@@ -205,7 +213,7 @@ class _LockesScreenState extends State<LockesScreen>
     final userService = Provider.of<UserService>(context);
     final isAuthenticated = userService.isAuthenticated;
     final theme = Theme.of(context);
-    
+
     // Ya no necesitamos esta variable pues no mostraremos el indicador de carga a pantalla completa
     // final bool isCurrentTabLoading = _filterMode == 'my' ? _isLoadingMy : _isLoadingAll;
 
@@ -224,38 +232,45 @@ class _LockesScreenState extends State<LockesScreen>
       // Siempre mostrar el TabBarView, eliminando la condición que mostraba el CircularProgressIndicator
       body: TabBarView(
         controller: _tabController,
-        // Desactivar el deslizamiento para controlar mejor las transiciones
-        physics: const NeverScrollableScrollPhysics(),
+        physics: const BouncingScrollPhysics(), // or ClampingScrollPhysics()
         children: [
           // "My Lockes" page - con indicador interno si está cargando
-          _buildTabContentWithLoading(theme, isAuthenticated, _myLockes, _isLoadingMy),
+          _buildTabContentWithLoading(
+            theme,
+            isAuthenticated,
+            _myLockes,
+            _isLoadingMy,
+          ),
           // "All Lockes" page - con indicador interno si está cargando
-          _buildTabContentWithLoading(theme, isAuthenticated, _allLockes, _isLoadingAll),
+          _buildTabContentWithLoading(
+            theme,
+            isAuthenticated,
+            _allLockes,
+            _isLoadingAll,
+          ),
         ],
       ),
-      bottomNavigationBar: isAuthenticated
-          ? TabBar(
-              controller: _tabController,
-              tabs: const [
-                Tab(icon: Icon(Icons.person), text: 'My Lockes'),
-                Tab(icon: Icon(Icons.list), text: 'All Lockes'),
-              ],
-            )
-          : null,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          GoRouter.of(context).go('/lockes/new');
-        },
-        label: const Text('New Locke'),
-        icon: const Icon(Icons.add),
-      ),
+      bottomNavigationBar:
+          isAuthenticated
+              ? TabBar(
+                controller: _tabController,
+                tabs: const [
+                  Tab(icon: Icon(Icons.person), text: 'My Lockes'),
+                  Tab(icon: Icon(Icons.list), text: 'All Lockes'),
+                ],
+              )
+              : null,
+      floatingActionButton: const NewRunButton(),
     );
   }
 
   // Nuevo método que maneja el estado de carga dentro de cada pestaña sin bloquear la UI
-  Widget _buildTabContentWithLoading(ThemeData theme, bool isAuthenticated, 
-      List<EnrichedLockeResponseDto> lockes, bool isLoading) {
-    
+  Widget _buildTabContentWithLoading(
+    ThemeData theme,
+    bool isAuthenticated,
+    List<EnrichedLockeResponseDto> lockes,
+    bool isLoading,
+  ) {
     // Solo mostrar indicador de carga si:
     // 1. La lista está vacía
     // 2. Es una carga inicial (isLoading es true)
@@ -268,7 +283,7 @@ class _LockesScreenState extends State<LockesScreen>
             // Mantener el banner de autenticación si corresponde
             if (!isAuthenticated && _filterMode == 'my')
               _buildAuthenticationBanner(theme),
-              
+
             // Indicador de carga discreto
             Expanded(
               child: Center(
@@ -278,9 +293,7 @@ class _LockesScreenState extends State<LockesScreen>
                     SizedBox(
                       width: 32,
                       height: 32,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                      ),
+                      child: CircularProgressIndicator(strokeWidth: 2.5),
                     ),
                     SizedBox(height: 16),
                     Text(
@@ -303,7 +316,11 @@ class _LockesScreenState extends State<LockesScreen>
   }
 
   // Updated to accept the specific list
-  Widget _buildTabContent(ThemeData theme, bool isAuthenticated, List<EnrichedLockeResponseDto> lockes) {
+  Widget _buildTabContent(
+    ThemeData theme,
+    bool isAuthenticated,
+    List<EnrichedLockeResponseDto> lockes,
+  ) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -317,7 +334,10 @@ class _LockesScreenState extends State<LockesScreen>
 
           // Lockes content - either empty state or list
           Expanded(
-            child: lockes.isEmpty ? _buildEmptyState(theme) : _buildLockesList(lockes),
+            child:
+                lockes.isEmpty
+                    ? _buildEmptyState(theme)
+                    : _buildLockesList(lockes),
           ),
         ],
       ),

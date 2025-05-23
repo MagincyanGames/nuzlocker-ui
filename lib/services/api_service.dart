@@ -13,8 +13,14 @@ class ApiService {
   static final ApiService _instance = ApiService._internal();
   late Api api;
   String? _token;
+  String _baseUrl = prodUrl; // Changed to production URL by default
+
+  // Available API URLs
+  static const String prodUrl = 'http://api.nuz.onara.top:6109';
+  static const String devUrl = 'http://play.onara.top:3000';
 
   bool get hasToken => _token != null;
+  String get currentBaseUrl => _baseUrl;
 
   factory ApiService() {
     return _instance;
@@ -28,14 +34,15 @@ class ApiService {
   Future<void> init() async {
     // Recuperar token guardado si existe
     await _loadToken();
-    // Reinicializar API con el token cargado
+    // Cargar URL guardada si existe
+    await _loadBaseUrl();
+    // Reinicializar API con el token y URL cargados
     _initApi();
   }
 
   void _initApi() {
     final client = ChopperClient(
-      // baseUrl: Uri.parse('http://api.nuz.onara.top:6109'),
-      baseUrl: Uri.parse('http://play.onara.top:3000'),
+      baseUrl: Uri.parse(_baseUrl),
       interceptors: [
         HttpLoggingInterceptor(),
         if (_token != null) _AuthInterceptor(_token!),
@@ -50,6 +57,19 @@ class ApiService {
   Future<void> _loadToken() async {
     final prefs = await SharedPreferences.getInstance();
     _token = prefs.getString('auth_token');
+  }
+
+  Future<void> _loadBaseUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    _baseUrl = prefs.getString('api_base_url') ?? prodUrl; // Changed default to prodUrl
+  }
+
+  Future<void> setBaseUrl(String url) async {
+    _baseUrl = url;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('api_base_url', url);
+    // Reinicializar la API con la nueva URL
+    _initApi();
   }
 
   Future<void> setToken(String token) async {

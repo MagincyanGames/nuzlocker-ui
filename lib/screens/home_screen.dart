@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nuzlocker_ui/widgets/new_run_button.dart';
 import 'package:provider/provider.dart';
 import '../services/user_service.dart';
 import '../services/api_service.dart';
+import '../services/developer_service.dart'; // Add this import
 import '../generated_code/api.swagger.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -143,6 +145,9 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final userService = Provider.of<UserService>(context);
+    final developerService = Provider.of<DeveloperService>(
+      context,
+    ); // Add this line
     final colorScheme = Theme.of(context).colorScheme;
 
     // Pantalla de carga
@@ -183,52 +188,154 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!userService.isAuthenticated) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('NuzlockeTracker'),
-          centerTitle: true,
+          title: Row(
+            children: [
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () {
+                    developerService.onPokeballTap(context);
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Icon(
+                      Icons.catching_pokemon,
+                      color: colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text('NuzlockeTracker'),
+              // Add developer indicator in non-authenticated state too
+              if (developerService.isDeveloperMode) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.orange,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'DEV',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          centerTitle: false,
           backgroundColor: colorScheme.primaryContainer,
           foregroundColor: colorScheme.onPrimaryContainer,
+          // Add debug menu option in app bar when not logged in but in dev mode
+          actions: [
+            if (developerService.isDeveloperMode)
+              IconButton(
+                icon: const Icon(Icons.code, color: Colors.orange),
+                tooltip: 'Opciones developer',
+                onPressed: () => context.push('/developer'),
+              ),
+          ],
         ),
         body: Center(
           child: Card(
-            elevation: 0,
+            elevation: 2, // Added slight elevation for better visibility
             color: colorScheme.surfaceVariant,
             margin: const EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(
+                color: colorScheme.outline.withOpacity(0.3),
+                width: 1.5,
+              ),
+            ),
             child: Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.all(28.0), // Increased padding
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.catching_pokemon,
-                    size: 64,
+                    size: 72, // Increased size
                     color: colorScheme.secondary,
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 28),
                   Text(
                     'Bienvenido a NuzlockeTracker',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.bold,
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Inicia sesión para ver tus partidas',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surface,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'Inicia sesión para ver tus partidas',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: colorScheme.onSurface,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(height: 32), // Increased spacing
                   FilledButton.tonalIcon(
                     onPressed: () => context.push('/login'),
                     icon: const Icon(Icons.login),
                     label: const Text('Iniciar sesión'),
                     style: FilledButton.styleFrom(
-                      minimumSize: const Size(200, 48),
+                      minimumSize: const Size(220, 52), // Larger button
+                      textStyle: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
+                  // Show developer options when in dev mode
+                  if (developerService.isDeveloperMode) ...[
+                    const SizedBox(height: 24),
+                    Divider(color: colorScheme.outline.withOpacity(0.5)),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.code,
+                          size: 16,
+                          color: Colors.orange,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Modo Desarrollador',
+                          style: TextStyle(
+                            color: Colors.orange,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    OutlinedButton.icon(
+                      onPressed: () => context.push('/developer'),
+                      icon: const Icon(Icons.settings_applications),
+                      label: const Text('Opciones developer'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.orange,
+                        side: const BorderSide(color: Colors.orange),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -242,9 +349,43 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: Row(
           children: [
-            Icon(Icons.catching_pokemon, color: colorScheme.onPrimaryContainer),
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(20),
+                onTap: () {
+                  developerService.onPokeballTap(context);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Icon(
+                    Icons.catching_pokemon,
+                    color: colorScheme.onPrimaryContainer,
+                  ),
+                ),
+              ),
+            ),
             const SizedBox(width: 8),
             const Text('NuzlockeTracker'),
+            // Add developer indicator
+            if (developerService.isDeveloperMode) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.orange,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'DEV',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
         centerTitle: false,
@@ -261,6 +402,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   break;
                 case 'lockes':
                   context.push('/lockes');
+                  break;
+                case 'developer':
+                  // Navigate to developer screen
+                  context.push('/developer');
                   break;
                 case 'logout':
                   userService.logout();
@@ -292,6 +437,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
+                  // Add developer menu item only when developer mode is active
+                  if (developerService.isDeveloperMode)
+                    const PopupMenuItem<String>(
+                      value: 'developer',
+                      child: Row(
+                        children: [
+                          Icon(Icons.code, color: Colors.orange),
+                          SizedBox(width: 8),
+                          Text('Opciones developer'),
+                        ],
+                      ),
+                    ),
                   const PopupMenuItem<String>(
                     value: 'logout',
                     child: Row(
@@ -306,37 +463,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/lockes/new'),
-        backgroundColor: colorScheme.primaryContainer,
-        foregroundColor: colorScheme.onPrimaryContainer,
-        child: Stack(
-          children: [
-            const Center(
-              child: Icon(
-                Icons.catching_pokemon,
-                size: 35,
-              ), // Increased size from 24 to 28
-            ),
-            Positioned(
-              right: 10, // Adjusted position to be closer to the icon
-              bottom: 10, // Adjusted position to be closer to the icon
-              child: Container(
-                padding: const EdgeInsets.all(1.5), // Made slightly smaller
-                decoration: BoxDecoration(
-                  color: colorScheme.primary,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: colorScheme.primaryContainer,
-                    width: 1.5,
-                  ),
-                ),
-                child: Icon(Icons.add, size: 10, color: colorScheme.onPrimary),
-              ),
-            ),
-          ],
-        ),
-      ),
+      floatingActionButton: const NewRunButton(),
       body: RefreshIndicator(
         onRefresh: _handleRefresh,
         color: colorScheme.primary,
@@ -676,6 +803,8 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
+  // Remove the _showDeveloperDialog method since we're not using it anymore
 }
 
 class _StatItem extends StatelessWidget {

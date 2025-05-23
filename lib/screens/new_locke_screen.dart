@@ -55,6 +55,7 @@ class _NewLockeScreenState extends State<NewLockeScreen> {
             const SnackBar(content: Text('Nuzlocke run created successfully!')),
           );
           // Navigate to the new locke details page
+          context.go('/');
           context.push('/locke/${newLocke.id}');
         }
       } else {

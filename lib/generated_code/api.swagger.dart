@@ -1214,6 +1214,56 @@ extension $CreateLockeDtoExtension on CreateLockeDto {
 }
 
 @JsonSerializable(explicitToJson: true)
+class Score {
+  const Score({
+    required this.mcm,
+    required this.wcm,
+  });
+
+  factory Score.fromJson(Map<String, dynamic> json) => _$ScoreFromJson(json);
+
+  static const toJsonFactory = _$ScoreToJson;
+  Map<String, dynamic> toJson() => _$ScoreToJson(this);
+
+  @JsonKey(name: 'mcm')
+  final double mcm;
+  @JsonKey(name: 'wcm')
+  final double wcm;
+  static const fromJsonFactory = _$ScoreFromJson;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other is Score &&
+            (identical(other.mcm, mcm) ||
+                const DeepCollectionEquality().equals(other.mcm, mcm)) &&
+            (identical(other.wcm, wcm) ||
+                const DeepCollectionEquality().equals(other.wcm, wcm)));
+  }
+
+  @override
+  String toString() => jsonEncode(this);
+
+  @override
+  int get hashCode =>
+      const DeepCollectionEquality().hash(mcm) ^
+      const DeepCollectionEquality().hash(wcm) ^
+      runtimeType.hashCode;
+}
+
+extension $ScoreExtension on Score {
+  Score copyWith({double? mcm, double? wcm}) {
+    return Score(mcm: mcm ?? this.mcm, wcm: wcm ?? this.wcm);
+  }
+
+  Score copyWithWrapped({Wrapped<double>? mcm, Wrapped<double>? wcm}) {
+    return Score(
+        mcm: (mcm != null ? mcm.value : this.mcm),
+        wcm: (wcm != null ? wcm.value : this.wcm));
+  }
+}
+
+@JsonSerializable(explicitToJson: true)
 class EnrichedParticipantResponseDto {
   const EnrichedParticipantResponseDto({
     required this.userId,
@@ -1242,7 +1292,7 @@ class EnrichedParticipantResponseDto {
   @JsonKey(name: 'isAdmin')
   final bool isAdmin;
   @JsonKey(name: 'score')
-  final double score;
+  final Score score;
   @JsonKey(name: 'points')
   final double points;
   static const fromJsonFactory = _$EnrichedParticipantResponseDtoFromJson;
@@ -1292,7 +1342,7 @@ extension $EnrichedParticipantResponseDtoExtension
       String? name,
       double? deaths,
       bool? isAdmin,
-      double? score,
+      Score? score,
       double? points}) {
     return EnrichedParticipantResponseDto(
         userId: userId ?? this.userId,
@@ -1310,7 +1360,7 @@ extension $EnrichedParticipantResponseDtoExtension
       Wrapped<String>? name,
       Wrapped<double>? deaths,
       Wrapped<bool>? isAdmin,
-      Wrapped<double>? score,
+      Wrapped<Score>? score,
       Wrapped<double>? points}) {
     return EnrichedParticipantResponseDto(
         userId: (userId != null ? userId.value : this.userId),

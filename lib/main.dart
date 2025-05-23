@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'router.dart';
 import 'services/user_service.dart';
 import 'services/api_service.dart';
+import 'services/developer_service.dart'; // Asegúrate de importar el servicio
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +21,7 @@ void main() async {
         // Add ApiService provider
         Provider.value(value: apiService),
         ChangeNotifierProvider.value(value: userService),
+        ChangeNotifierProvider(create: (_) => DeveloperService()), // Agregar DeveloperService
       ],
       child: const MyApp(),
     ),

@@ -161,6 +161,16 @@ Map<String, dynamic> _$CreateLockeDtoToJson(CreateLockeDto instance) =>
       'adminIds': instance.adminIds,
     };
 
+Score _$ScoreFromJson(Map<String, dynamic> json) => Score(
+      mcm: (json['mcm'] as num).toDouble(),
+      wcm: (json['wcm'] as num).toDouble(),
+    );
+
+Map<String, dynamic> _$ScoreToJson(Score instance) => <String, dynamic>{
+      'mcm': instance.mcm,
+      'wcm': instance.wcm,
+    };
+
 EnrichedParticipantResponseDto _$EnrichedParticipantResponseDtoFromJson(
         Map<String, dynamic> json) =>
     EnrichedParticipantResponseDto(
@@ -169,7 +179,7 @@ EnrichedParticipantResponseDto _$EnrichedParticipantResponseDtoFromJson(
       name: json['name'] as String? ?? 'default',
       deaths: (json['deaths'] as num).toDouble(),
       isAdmin: json['isAdmin'] as bool,
-      score: (json['score'] as num).toDouble(),
+      score: Score.fromJson(json['score'] as Map<String, dynamic>),
       points: (json['points'] as num).toDouble(),
     );
 
@@ -181,7 +191,7 @@ Map<String, dynamic> _$EnrichedParticipantResponseDtoToJson(
       'name': instance.name,
       'deaths': instance.deaths,
       'isAdmin': instance.isAdmin,
-      'score': instance.score,
+      'score': instance.score.toJson(),
       'points': instance.points,
     };
 

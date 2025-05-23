@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nuzlocker_ui/screens/developer_screen.dart';
 import 'package:nuzlocker_ui/screens/locke_details_screen.dart';
 import 'package:nuzlocker_ui/screens/lockes_screen.dart';
 import 'package:nuzlocker_ui/screens/new_locke_screen.dart';
@@ -7,6 +8,8 @@ import 'package:nuzlocker_ui/screens/signup_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'package:nuzlocker_ui/screens/statistics_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:nuzlocker_ui/services/developer_service.dart';
 
 // Create a key for the navigator
 final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -74,6 +77,21 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: '/statistics',
       builder: (context, state) => const StatisticsScreen(),
+    ),
+    GoRoute(
+      path: '/developer',
+      builder: (context, state) {
+        final developerService = Provider.of<DeveloperService>(context, listen: false);
+        // Check if developer mode is active before allowing access
+        if (!developerService.isDeveloperMode) {
+          return const Scaffold(
+            body: Center(
+              child: Text('Acceso denegado'),
+            ),
+          );
+        }
+        return const DeveloperScreen();
+      },
     ),
   ],
 

@@ -70,7 +70,10 @@ class _BattlesTabState extends State<BattlesTab> {
             deaths: 0,
             points: 0,
             isAdmin: false,
-            score: 0,
+            score: new Score(
+              mcm: 0,
+              wcm: 0,
+            ),
           ),
     );
     return participant.name ?? 'Desconocido';
